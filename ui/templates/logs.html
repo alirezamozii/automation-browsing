@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}تاریخچه و لاگ‌ها{% endblock %}
+{% block route %}logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Controls -->
+    <div class="card p-4 flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex flex-wrap gap-4 items-center">
+            <select class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                <option value="all">همه فرآیندها</option>
+                <option value="test_workflow">فرآیند نمونه</option>
+            </select>
+            
+            <select class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                <option value="all">همه وضعیت‌ها</option>
+                <option value="error">فقط خطاها</option>
+                <option value="info">اطلاعات</option>
+                <option value="warning">هشدارها</option>
+            </select>
+            
+            <input type="date" class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+        </div>
+        
+        <button class="btn btn-outline border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20 text-sm px-3 py-2">
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            پاکسازی لاگ‌ها
+        </button>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-800/50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">زمان</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وضعیت</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">فرآیند</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">مرحله</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">پیام</th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800" id="logs-table-body">
+                    
+                    <!-- Sample Error Row -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">14:22:10</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="badge badge-error">ERROR</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">ثبت نام مشتری</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">FILL_FORM</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">المان input[name="phone"] پیدا نشد. Timeout 30000ms exceeded.</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <button class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mx-1" title="نمایش اسکرین‌شات">
+                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </button>
+                            <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mx-1" title="جزئیات بیشتر">
+                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Sample Info Row -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">14:21:05</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="badge badge-info">INFO</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">ثبت نام مشتری</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">STARTING</td>
+                        <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">فرآیند با موفقیت آغاز شد.</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mx-1" title="جزئیات بیشتر">
+                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </button>
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="bg-white dark:bg-gray-900 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 sm:px-6">
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        نمایش <span class="font-medium">۱</span> تا <span class="font-medium">۱۰</span> از <span class="font-medium">۹۷</span> نتیجه
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <span class="sr-only">قبلی</span>
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </a>
+                        <a href="#" aria-current="page" class="z-10 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-600 dark:text-indigo-400 relative inline-flex items-center px-4 py-2 border text-sm font-medium">۱</a>
+                        <a href="#" class="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 relative inline-flex items-center px-4 py-2 border text-sm font-medium">۲</a>
+                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <span class="sr-only">بعدی</span>
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,233 @@
+@import url('../fonts/vazirmatn/font-face.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode Variables */
+    --bg-color: #FAFAFA;
+    --card-bg: #FFFFFF;
+    --text-color: #1A1A2E;
+    --text-muted: #64748b;
+    --accent-color: #2f31a0;
+    /* Indigo 500 */
+    --accent-hover: #4F46E5;
+    /* Indigo 600 */
+    --border-color: #E2E8F0;
+
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --error-color: #EF4444;
+  }
+
+  .dark {
+    /* Dark Mode Variables */
+    --bg-color: #0F0F11;
+    --card-bg: #1A1A2E;
+    --text-color: #E2E8F0;
+    --text-muted: #94A3B8;
+    --accent-color: #818CF8;
+    /* Indigo 400 */
+    --accent-hover: #6366F1;
+    /* Indigo 500 */
+    --border-color: #334155;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Vazirmatn', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer components {
+
+  /* Cards */
+  .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-glass {
+    background: rgba(var(--card-bg), 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--border-color), 0.3);
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: 0.5rem;
+  }
+
+  .btn-primary {
+    background-color: var(--accent-color);
+    color: #FFFFFF;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+
+  .btn-danger {
+    background-color: var(--error-color);
+    color: #FFFFFF;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background-color: #DC2626;
+    /* Red 600 */
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-color);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background-color: rgba(99, 102, 241, 0.1);
+    /* Indigo with opacity */
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+  }
+
+  .badge-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+  }
+
+  .badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+  }
+
+  .badge-info {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: var(--accent-color);
+  }
+
+  /* Toast */
+  .toast-container {
+    @apply fixed top-4 left-4 z-50 flex flex-col gap-2;
+  }
+
+  .toast {
+    @apply flex items-center p-4 w-full max-w-xs text-sm rounded-lg shadow min-w-[250px];
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  /* Progress */
+  .progress-bar-container {
+    @apply w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden;
+  }
+
+  .progress-bar {
+    @apply bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out;
+    background-color: var(--accent-color);
+  }
+}
+
+/* Utilities & Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skeleton-loading {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.dark .skeleton-loading {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.02) 100%);
+  background-size: 200% 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

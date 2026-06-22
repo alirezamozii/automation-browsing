@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}داشبورد{% endblock %}
+{% block route %}dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Header / Simple UI Level -->
+    <div class="card p-6 flex flex-col items-center text-center">
+        <!-- Status Icon -->
+        <div class="mb-4">
+            <!-- IDLE -->
+            <div x-show="engineState === 'IDLE'" class="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center mx-auto">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <!-- RUNNING -->
+            <div x-show="engineState === 'RUNNING'" class="w-20 h-20 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center mx-auto" style="animation: pulse-dot 2s infinite;">
+                <svg class="w-10 h-10 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </div>
+            <!-- PAUSED -->
+            <div x-show="engineState === 'PAUSED'" class="w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500 flex items-center justify-center mx-auto">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <!-- ERROR -->
+            <div x-show="engineState === 'ERROR'" class="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 flex items-center justify-center mx-auto">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-2" x-text="engineStateText">آماده به کار</h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            <span x-show="engineState === 'IDLE'">یک فرآیند را برای شروع اتوماسیون انتخاب کنید.</span>
+            <span x-show="engineState === 'RUNNING'">سیستم در حال اجرای فرآیند به صورت خودکار است. لطفا در سیستم دخالت نکنید.</span>
+            <span x-show="engineState === 'PAUSED'">فرآیند متوقف شده است. می‌توانید دستی تغییرات را اعمال کرده و ادامه دهید.</span>
+            <span x-show="engineState === 'ERROR'">خطایی در اجرا رخ داد. لطفا مرورگر را بررسی کنید یا لاگ‌ها را ببینید.</span>
+        </p>
+
+        <!-- Main Controls -->
+        <div class="flex gap-4">
+            <!-- IDLE State Controls -->
+            <div x-show="engineState === 'IDLE'" class="flex gap-4 items-center">
+                <select id="workflow-select" class="block w-64 rounded-md border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2 px-3">
+                    <option value="">انتخاب فرآیند...</option>
+                    <option value="test_workflow">فرآیند نمونه (تست)</option>
+                </select>
+                <button class="btn btn-primary px-8" onclick="apiStart()">شروع</button>
+            </div>
+
+            <!-- RUNNING State Controls -->
+            <div x-show="engineState === 'RUNNING'" class="flex gap-4">
+                <button class="btn border border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20" onclick="apiPause()">
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    توقف موقت (Pause)
+                </button>
+                <button class="btn btn-danger" onclick="apiStop()">لغو کامل</button>
+            </div>
+
+            <!-- PAUSED / ERROR State Controls -->
+            <div x-show="['PAUSED', 'ERROR'].includes(engineState)" class="flex gap-4">
+                <button class="btn btn-primary" onclick="apiResume()">
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                    ادامه (Resume)
+                </button>
+                <button class="btn btn-danger" onclick="apiStop()">لغو کامل</button>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div x-show="engineState !== 'IDLE'" class="w-full max-w-2xl mt-8">
+            <div class="flex justify-between text-sm mb-2 font-medium">
+                <span class="text-indigo-600 dark:text-indigo-400">مرحله <span x-text="currentStepIndex">0</span> از <span x-text="totalSteps">0</span></span>
+                <span class="text-gray-500" x-text="Math.round((currentStepIndex / Math.max(totalSteps, 1)) * 100) + '%'">0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" :style="'width: ' + Math.round((currentStepIndex / Math.max(totalSteps, 1)) * 100) + '%'"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Normal UI Level: Live Logs & Stats -->
+    <div x-show="['normal', 'developer'].includes(uiLevel)" class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+        
+        <!-- Live Logs Panel -->
+        <div class="card p-0 col-span-2 flex flex-col h-96">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                <h3 class="font-bold flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                    لاگ‌های زنده
+                </h3>
+                <span class="badge badge-info">زنده</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50 font-mono text-sm space-y-2" id="live-logs-container">
+                <!-- Logs will be appended here via JS -->
+                <div class="text-gray-400 italic text-center py-4">منتظر شروع فرآیند...</div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card p-4 space-y-4">
+            <h3 class="font-bold border-b border-gray-200 dark:border-gray-800 pb-2">اطلاعات اجرا</h3>
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800/50">
+                <span class="text-gray-500">فرآیند فعلی</span>
+                <span class="font-medium" x-text="currentWorkflow || '-'">-</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800/50">
+                <span class="text-gray-500">زمان شروع</span>
+                <span class="font-medium" id="start-time">-</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800/50">
+                <span class="text-gray-500">وضعیت</span>
+                <span class="badge badge-success" x-show="engineState === 'RUNNING'">در حال اجرا</span>
+                <span class="badge badge-warning" x-show="engineState === 'PAUSED'">متوقف</span>
+                <span class="badge badge-error" x-show="engineState === 'ERROR'">خطا</span>
+                <span class="badge" x-show="engineState === 'IDLE'">آماده</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <span class="text-gray-500">تعداد خطاها (Retry)</span>
+                <span class="font-medium text-red-500">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Developer UI Level: State Machine -->
+    <div x-show="uiLevel === 'developer'" class="card p-6 fade-in">
+        <h3 class="font-bold flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            نمایشگر State Machine (Developer)
+        </h3>
+        <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 flex items-center justify-center overflow-x-auto">
+            <!-- Simple placeholder for the visualizer. In a real app we'd use Canvas/SVG here -->
+            <div class="flex items-center gap-4 min-w-max">
+                <div class="px-4 py-2 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">IDLE</div>
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                <div class="px-4 py-2 rounded-full border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900 shadow-lg shadow-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold">RUNNING</div>
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                <div class="px-4 py-2 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">DONE</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Live Log Appender
+    window.addEventListener('new-log', (e) => {
+        const container = document.getElementById('live-logs-container');
+        if (!container) return;
+        
+        // Remove placeholder if it exists
+        if (container.children.length === 1 && container.children[0].classList.contains('italic')) {
+            container.innerHTML = '';
+        }
+        
+        const log = e.detail;
+        const div = document.createElement('div');
+        div.className = 'py-1 border-b border-gray-100 dark:border-gray-800/50 flex gap-3';
+        
+        // Color based on level
+        let levelClass = 'text-gray-500';
+        if (log.level === 'ERROR') levelClass = 'text-red-500 font-bold';
+        if (log.level === 'WARN') levelClass = 'text-yellow-500';
+        if (log.level === 'INFO') levelClass = 'text-indigo-500';
+        
+        const time = new Date().toLocaleTimeString('fa-IR');
+        
+        div.innerHTML = `
+            <span class="text-xs text-gray-400 shrink-0">[${time}]</span>
+            <span class="text-xs ${levelClass} shrink-0 w-12">${log.level}</span>
+            <span class="text-gray-700 dark:text-gray-300 break-words">${log.message}</span>
+        `;
+        
+        container.appendChild(div);
+        
+        // Keep only last 50 logs
+        if (container.children.length > 50) {
+            container.removeChild(container.firstChild);
+        }
+        
+        // Auto scroll to bottom
+        container.scrollTop = container.scrollHeight;
+    });
+
+    // API Calls Placeholders (These will be implemented in Python backend)
+    function apiStart() {
+        const select = document.getElementById('workflow-select');
+        const wf = select ? select.value : 'test_workflow';
+        if (!wf) {
+            Alpine.store('globalStore').showToast('لطفا یک فرآیند را انتخاب کنید', 'warning');
+            return;
+        }
+        
+        fetch('/api/workflow/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name: wf })
+        }).then(r => r.json()).catch(e => console.error(e));
+        
+        document.getElementById('start-time').innerText = new Date().toLocaleTimeString('fa-IR');
+    }
+
+    function apiPause() {
+        fetch('/api/workflow/pause', {method: 'POST'}).catch(e => console.error(e));
+    }
+
+    function apiResume() {
+        fetch('/api/workflow/resume', {method: 'POST'}).catch(e => console.error(e));
+    }
+
+    function apiStop() {
+        fetch('/api/workflow/stop', {method: 'POST'}).catch(e => console.error(e));
+    }
+</script>
+{% endblock %}
