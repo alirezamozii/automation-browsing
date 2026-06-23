@@ -43,8 +43,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# مسیرهای استاتیک و تمپلیت‌ها
-BASE_DIR = Path(__file__).resolve().parent
+# مسیرهای استاتیک و تمپلیت‌ها با پشتیبانی از دایرکتوری موقت فایل EXE (PyInstaller)
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).resolve().parent
+
 STATIC_DIR = BASE_DIR / "ui" / "static"
 TEMPLATES_DIR = BASE_DIR / "ui" / "templates"
 
@@ -131,17 +135,20 @@ async def render_dashboard(request: Request):
     """صفحه داشبورد اصلی"""
     try:
         return templates.TemplateResponse("dashboard.html", {"request": request})
-    except (TemplateNotFound, Exception):
-        return get_fallback_page("صفحه داشبورد", "این صفحه در حال طراحی و پیاده‌سازی توسط رابط کاربری (Gemini) است.")
+    except Exception as e:
+        logger.error(f"خطای جدی در رندر داشبورد: {str(e)}", exc_info=True)
+        return get_fallback_page("صفحه داشبورد", f"خطا در بارگذاری فرانت‌اند: {str(e)}")
 
 
 @app.get("/workflows")
 async def render_workflow(request: Request):
     """صفحه جزئیات و مدیریت ورک‌فلوها"""
     try:
-        return templates.TemplateResponse("workflow.html", {"request": request})
-    except (TemplateNotFound, Exception):
-        return get_fallback_page("صفحه فرآیندها", "این صفحه در حال طراحی و پیاده‌سازی توسط رابط کاربری (Gemini) است.")
+        # اصلاح باگ: نام فایل اصلاح شد به workflows.html
+        return templates.TemplateResponse("workflows.html", {"request": request})
+    except Exception as e:
+        logger.error(f"خطای جدی در رندر صفحه فرآیندها: {str(e)}", exc_info=True)
+        return get_fallback_page("صفحه فرآیندها", f"خطا در بارگذاری فرانت‌اند فرآیندها: {str(e)}")
 
 
 @app.get("/logs")
@@ -149,8 +156,9 @@ async def render_logs(request: Request):
     """صفحه لاگ‌های اجرا"""
     try:
         return templates.TemplateResponse("logs.html", {"request": request})
-    except (TemplateNotFound, Exception):
-        return get_fallback_page("صفحه لاگ‌ها", "این صفحه در حال طراحی و پیاده‌سازی توسط رابط کاربری (Gemini) است.")
+    except Exception as e:
+        logger.error(f"خطای جدی در رندر لاگ‌ها: {str(e)}", exc_info=True)
+        return get_fallback_page("صفحه لاگ‌ها", f"خطا در بارگذاری فرانت‌اند لاگ‌ها: {str(e)}")
 
 
 @app.get("/settings")
@@ -158,8 +166,9 @@ async def render_settings(request: Request):
     """صفحه تنظیمات پلتفرم"""
     try:
         return templates.TemplateResponse("settings.html", {"request": request})
-    except (TemplateNotFound, Exception):
-        return get_fallback_page("صفحه تنظیمات", "این صفحه در حال طراحی و پیاده‌سازی توسط رابط کاربری (Gemini) است.")
+    except Exception as e:
+        logger.error(f"خطای جدی در رندر تنظیمات: {str(e)}", exc_info=True)
+        return get_fallback_page("صفحه تنظیمات", f"خطا در بارگذاری فرانت‌اند تنظیمات: {str(e)}")
 
 
 @app.get("/developer")
@@ -167,8 +176,9 @@ async def render_developer(request: Request):
     """صفحه ابزار توسعه‌دهندگان"""
     try:
         return templates.TemplateResponse("developer.html", {"request": request})
-    except (TemplateNotFound, Exception):
-        return get_fallback_page("صفحه توسعه‌دهنده", "این صفحه در حال طراحی و پیاده‌سازی توسط رابط کاربری (Gemini) است.")
+    except Exception as e:
+        logger.error(f"خطای جدی در رندر صفحه توسعه‌دهنده: {str(e)}", exc_info=True)
+        return get_fallback_page("صفحه توسعه‌دهنده", f"خطا در بارگذاری فرانت‌اند توسعه‌دهنده: {str(e)}")
 
 
 # ─── مسیرهای API و WebSocket ─────────────────────────────────────────

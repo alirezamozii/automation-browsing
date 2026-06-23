@@ -101,15 +101,16 @@ class WorkflowRegistry:
     def auto_discover(self) -> int:
         """
         کشف خودکار گردش‌کارها از پوشه workflows
-
-        تمام ماژول‌های پایتون درون پوشه workflows را بارگذاری کرده
-        و هر کلاسی که زیرکلاس BaseWorkflow باشد (و انتزاعی نباشد)
-        را ثبت می‌کند.
-
-        Returns:
-            تعداد گردش‌کارهای کشف و ثبت‌شده
         """
-        workflows_dir = Path(__file__).parent
+        import sys
+        
+        # تشخیص اینکه آیا نرم‌افزار به صورت EXE اجرا شده یا معمولی
+        if getattr(sys, 'frozen', False):
+            # مسیر موقت در حالت EXE (PyInstaller)
+            workflows_dir = Path(sys._MEIPASS) / "workflows"
+        else:
+            workflows_dir = Path(__file__).parent
+            
         count = 0
 
         logger.info("شروع کشف خودکار از: %s", workflows_dir)

@@ -59,16 +59,14 @@ async def get_status(request: Request) -> WorkflowStatus:
                 pass
                 
         status["progress"] = progress
-        status["current_step"] = None
-        status["error"] = None
         
         return WorkflowStatus(
             state=status["state"],
             workflow_name=status["workflow_name"],
-            current_step=status.get("current_step"),
+            current_step=status.get("current_step"), # حالا اطلاعات واقعی انجین فرستاده می‌شود
             is_running=status["is_running"],
             progress=status["progress"],
-            error=status.get("error"),
+            error=status.get("error"),               # حالا خطای واقعی انجین فرستاده می‌شود
         )
     except Exception as e:
         logger.error(f"خطا در دریافت وضعیت: {e}")
