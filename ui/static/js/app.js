@@ -60,7 +60,7 @@ document.addEventListener('alpine:init', () => {
             }
             
             toast.id = id;
-            toast.className = `toast slide-in-right ${borderClass} mb-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100`;
+            toast.className = `toast ${borderClass} mb-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100`;
             toast.innerHTML = `
                 <div class="flex items-center gap-2.5 w-full">
                     <div class="shrink-0 flex items-center justify-center">${icon}</div>
@@ -78,7 +78,7 @@ document.addEventListener('alpine:init', () => {
                     const t = document.getElementById(id);
                     if (t) {
                         t.style.opacity = '0';
-                        t.style.transform = 'translateX(-20px)';
+                        t.style.transform = 'translateY(15px)';
                         t.style.transition = 'all 0.2s ease';
                         setTimeout(() => t.remove(), 200);
                     }
