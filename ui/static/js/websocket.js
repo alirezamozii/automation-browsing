@@ -89,6 +89,11 @@ class AutomationWebSocket {
                 }
                 break;
                 
+            case 'heartbeat':
+            case 'pong':
+                // Silently ignore heartbeat and pong
+                break;
+                
             default:
                 console.log('Unknown message type:', message.type);
         }

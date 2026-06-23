@@ -13,24 +13,22 @@ document.addEventListener('alpine:init', () => {
         totalSteps: 0,
         
         init() {
-            // Watch theme changes
-            this.$watch('theme', value => {
-                localStorage.setItem('theme', value);
-                if (value === 'dark') {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            });
-            
             // Set initial theme
             if (this.theme === 'dark') {
                 document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
             }
         },
         
         toggleTheme() {
             this.theme = this.theme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', this.theme);
+            if (this.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
         },
         
         setUiLevel(level) {

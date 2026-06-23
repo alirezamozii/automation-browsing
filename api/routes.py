@@ -114,6 +114,8 @@ async def start_workflow_route(request: Request, body: WorkflowStartRequest) -> 
             message=f"فرآیند '{body.name}' با موفقیت شروع شد",
             data={"workflow_name": body.name},
         )
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.warning(f"خطای اعتبارسنجی در شروع فرآیند: {e}")
         raise HTTPException(status_code=400, detail=str(e))
