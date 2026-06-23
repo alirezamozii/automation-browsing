@@ -6,70 +6,71 @@
 
 @layer base {
   :root {
-    /* Light Mode Variables */
-    --bg-color: #FAFAFA;
+    /* Light Mode Variables (Notion-like warm white/charcoal) */
+    --bg-color: #FFFFFF;
+    --sidebar-bg: #F7F7F5;
     --card-bg: #FFFFFF;
-    --text-color: #1A1A2E;
-    --text-muted: #64748b;
-    --accent-color: #2f31a0;
-    /* Indigo 500 */
-    --accent-hover: #4F46E5;
-    /* Indigo 600 */
-    --border-color: #E2E8F0;
+    --text-color: #191919;
+    --text-muted: #787774;
+    --accent-color: #09090B;
+    --accent-text-color: #FFFFFF;
+    --accent-hover: #27272A;
+    --border-color: rgba(55, 53, 47, 0.09);
+    --hover-bg: rgba(55, 53, 47, 0.04);
+    --hover-bg-active: rgba(55, 53, 47, 0.08);
 
-    --success-color: #10B981;
-    --warning-color: #F59E0B;
+    --success-color: #22C55E;
+    --warning-color: #EAB308;
     --error-color: #EF4444;
   }
 
   .dark {
-    /* Dark Mode Variables */
-    --bg-color: #0F0F11;
-    --card-bg: #1A1A2E;
-    --text-color: #E2E8F0;
-    --text-muted: #94A3B8;
-    --accent-color: #818CF8;
-    /* Indigo 400 */
-    --accent-hover: #6366F1;
-    /* Indigo 500 */
-    --border-color: #334155;
+    /* Dark Mode Variables (Notion dark charcoal theme) */
+    --bg-color: #191919;
+    --sidebar-bg: #202020;
+    --card-bg: #191919;
+    --text-color: #E3E3E2;
+    --text-muted: #9B9B9B;
+    --accent-color: #F4F4F5;
+    --accent-text-color: #09090B;
+    --accent-hover: #D4D4D8;
+    --border-color: rgba(255, 255, 255, 0.095);
+    --hover-bg: rgba(255, 255, 255, 0.055);
+    --hover-bg-active: rgba(255, 255, 255, 0.085);
   }
 
   body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: 'Vazirmatn', sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji";
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
 @layer components {
-
-  /* Cards */
+  /* Flat/Minimal Cards */
   .card {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .card-glass {
-    background: rgba(var(--card-bg), 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(var(--border-color), 0.3);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
   }
 
-  /* Buttons */
+  /* Minimal Buttons */
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-    border-radius: 0.5rem;
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: 0.25rem;
   }
 
   .btn-primary {
     background-color: var(--accent-color);
-    color: #FFFFFF;
+    color: var(--accent-text-color);
   }
 
   .btn-primary:hover:not(:disabled) {
@@ -83,7 +84,6 @@
 
   .btn-danger:hover:not(:disabled) {
     background-color: #DC2626;
-    /* Red 600 */
   }
 
   .btn-ghost {
@@ -92,17 +92,26 @@
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background-color: rgba(99, 102, 241, 0.1);
-    /* Indigo with opacity */
+    background-color: var(--hover-bg);
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .btn-outline:hover:not(:disabled) {
+    background-color: var(--hover-bg);
   }
 
   /* Badges */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-normal;
   }
 
   .badge-success {
-    background-color: rgba(16, 185, 129, 0.1);
+    background-color: rgba(34, 197, 94, 0.1);
     color: var(--success-color);
   }
 
@@ -112,74 +121,70 @@
   }
 
   .badge-warning {
-    background-color: rgba(245, 158, 11, 0.1);
+    background-color: rgba(234, 211, 8, 0.1);
     color: var(--warning-color);
   }
 
   .badge-info {
-    background-color: rgba(99, 102, 241, 0.1);
-    color: var(--accent-color);
-  }
-
-  /* Toast */
-  .toast-container {
-    @apply fixed top-4 left-4 z-50 flex flex-col gap-2;
-  }
-
-  .toast {
-    @apply flex items-center p-4 w-full max-w-xs text-sm rounded-lg shadow min-w-[250px];
-    background-color: var(--card-bg);
+    background-color: var(--hover-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
   }
 
-  /* Progress */
+  /* Layout-safe Floating Toasts */
+  .toast-container {
+    @apply fixed top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none;
+  }
+
+  .toast {
+    @apply flex items-center p-3 w-full max-w-xs text-sm rounded shadow-lg pointer-events-auto min-w-[280px];
+    background-color: var(--sidebar-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Progress Bar */
   .progress-bar-container {
-    @apply w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden;
+    @apply w-full bg-gray-100 rounded-full h-1.5 dark:bg-gray-800 overflow-hidden;
   }
 
   .progress-bar {
-    @apply bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out;
-    background-color: var(--accent-color);
+    @apply h-1.5 rounded-full transition-all duration-500 ease-out;
+    background-color: var(--text-color);
   }
 }
 
 /* Utilities & Animations */
 .fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-in-right {
-  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInRight 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .skeleton-loading {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(90deg, rgba(55, 53, 47, 0) 0%, rgba(55, 53, 47, 0.03) 50%, rgba(55, 53, 47, 0) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
 
 .dark .skeleton-loading {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.02) 100%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0) 100%);
   background-size: 200% 100%;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideInRight {
   from {
-    transform: translateX(100%);
+    transform: translateX(-20px);
     opacity: 0;
   }
-
   to {
     transform: translateX(0);
     opacity: 1;
@@ -189,34 +194,27 @@
 @keyframes pulse-dot {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+    box-shadow: 0 0 0 0 rgba(120, 119, 116, 0.4);
   }
-
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 6px rgba(120, 119, 116, 0);
   }
-
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 0 rgba(120, 119, 116, 0);
   }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar (Flat) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -225,7 +223,7 @@
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -1,31 +1,98 @@
 {% extends "base.html" %}
 
-{% block title %}تاریخچه و لاگ‌ها{% endblock %}
+{% block title %}تاریخچه و لاگ‌های اتوماسیون{% endblock %}
 {% block route %}logs{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6" x-data="{
+    logs: [],
+    total: 0,
+    limit: 15,
+    offset: 0,
+    loading: true,
+    selectedWf: '',
+    selectedStatus: '',
+    workflows: [],
     
-    <!-- Controls -->
-    <div class="card p-4 flex flex-wrap gap-4 items-center justify-between">
-        <div class="flex flex-wrap gap-4 items-center">
-            <select class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                <option value="all">همه فرآیندها</option>
-                <option value="test_workflow">فرآیند نمونه</option>
+    init() {
+        // Fetch real workflows list for filter
+        fetch('/api/workflows')
+            .then(r => r.json())
+            .then(data => this.workflows = data);
+        this.fetchLogs();
+    },
+    
+    fetchLogs() {
+        this.loading = true;
+        let url = `/api/logs?limit=${this.limit}&offset=${this.offset}`;
+        if (this.selectedWf) url += `&workflow=${this.selectedWf}`;
+        if (this.selectedStatus) url += `&status=${this.selectedStatus}`;
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                this.logs = data.logs;
+                this.total = data.total;
+                this.loading = false;
+            })
+            .catch(e => console.error(e));
+    },
+    
+    clearAll() {
+        if (!confirm('آیا از پاکسازی تمام تاریخچه لاگ‌ها مطمئن هستید؟ این عمل غیرقابل بازگشت است.')) return;
+        fetch('/api/logs', { method: 'DELETE' })
+            .then(r => r.json())
+            .then(() => {
+                Alpine.store('globalStore').showToast('کل تاریخچه لاگ‌ها با موفقیت پاکسازی شد', 'success');
+                this.offset = 0;
+                this.fetchLogs();
+            })
+            .catch(e => console.error(e));
+    },
+    
+    prevPage() {
+        if (this.offset > 0) {
+            this.offset = Math.max(0, this.offset - this.limit);
+            this.fetchLogs();
+        }
+    },
+    
+    nextPage() {
+        if (this.offset + this.limit < this.total) {
+            this.offset += this.limit;
+            this.fetchLogs();
+        }
+    },
+    
+    applyFilters() {
+        this.offset = 0;
+        this.fetchLogs();
+    }
+}">
+    
+    <!-- Controls/Filters Header -->
+    <div class="card p-4 flex flex-wrap gap-4 items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/10">
+        <div class="flex flex-wrap gap-3 items-center">
+            <!-- Workflow Filter -->
+            <select x-model="selectedWf" @change="applyFilters()" class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded py-1.5 px-3 focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 text-xs text-zinc-700 dark:text-zinc-300">
+                <option value="">همه فرآیندها</option>
+                <template x-for="wf in workflows" :key="wf.name">
+                    <option :value="wf.name" x-text="wf.description || wf.name"></option>
+                </template>
             </select>
             
-            <select class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                <option value="all">همه وضعیت‌ها</option>
-                <option value="error">فقط خطاها</option>
-                <option value="info">اطلاعات</option>
-                <option value="warning">هشدارها</option>
+            <!-- Status Filter -->
+            <select x-model="selectedStatus" @change="applyFilters()" class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded py-1.5 px-3 focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 text-xs text-zinc-700 dark:text-zinc-300">
+                <option value="">همه وضعیت‌ها</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARNING</option>
+                <option value="ERROR">ERROR</option>
+                <option value="SUCCESS">SUCCESS</option>
             </select>
-            
-            <input type="date" class="border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
         </div>
         
-        <button class="btn btn-outline border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20 text-sm px-3 py-2">
-            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        <button @click="clearAll()" class="btn btn-outline border-red-200 text-red-600 hover:bg-red-50 dark:border-red-950 dark:text-red-400 dark:hover:bg-red-950/20 text-xs px-3 py-1.5">
+            <svg class="w-3.5 h-3.5 ml-1.5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             پاکسازی لاگ‌ها
         </button>
     </div>
@@ -33,79 +100,90 @@
     <!-- Logs Table -->
     <div class="card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-800/50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">زمان</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وضعیت</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">فرآیند</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">مرحله</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">پیام</th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">عملیات</th>
+            <table class="min-w-full divide-y divide-gray-150 dark:divide-zinc-800/80">
+                <thead class="bg-zinc-50 dark:bg-zinc-900/30">
+                    <tr class="text-xs text-zinc-500 dark:text-zinc-400">
+                        <th scope="col" class="px-6 py-3.5 text-right font-medium tracking-wider w-24">زمان</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-medium tracking-wider w-24">وضعیت</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-medium tracking-wider w-36">فرآیند</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-medium tracking-wider w-36">مرحله فنی</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-medium tracking-wider">شرح رویداد</th>
+                        <th scope="col" class="px-6 py-3.5 text-center font-medium tracking-wider w-20">مدیا</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800" id="logs-table-body">
+                <tbody class="bg-white dark:bg-zinc-950 divide-y divide-gray-100 dark:divide-zinc-800/40 text-xs">
+                    <!-- Loading skeleton -->
+                    <template x-if="loading">
+                        <template x-for="i in [1, 2, 3, 4, 5]">
+                            <tr class="animate-pulse">
+                                <td colspan="6" class="px-6 py-4"><div class="h-4 bg-zinc-100 dark:bg-zinc-900 rounded w-full"></div></td>
+                            </tr>
+                        </template>
+                    </template>
                     
-                    <!-- Sample Error Row -->
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">14:22:10</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="badge badge-error">ERROR</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">ثبت نام مشتری</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">FILL_FORM</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">المان input[name="phone"] پیدا نشد. Timeout 30000ms exceeded.</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                            <button class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mx-1" title="نمایش اسکرین‌شات">
-                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            </button>
-                            <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mx-1" title="جزئیات بیشتر">
-                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </button>
-                        </td>
-                    </tr>
+                    <!-- Empty State -->
+                    <template x-if="!loading && logs.length === 0">
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-zinc-400 dark:text-zinc-500">
+                                <svg class="w-8 h-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path></svg>
+                                لاگی در سیستم ثبت نشده است.
+                            </td>
+                        </tr>
+                    </template>
 
-                    <!-- Sample Info Row -->
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">14:21:05</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="badge badge-info">INFO</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">ثبت نام مشتری</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">STARTING</td>
-                        <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">فرآیند با موفقیت آغاز شد.</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                            <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mx-1" title="جزئیات بیشتر">
-                                <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </button>
-                        </td>
-                    </tr>
-                    
+                    <!-- Real Rows -->
+                    <template x-if="!loading && logs.length > 0">
+                        <template x-for="log in logs" :key="log.id">
+                            <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 transition-colors">
+                                <td class="px-6 py-3 whitespace-nowrap text-zinc-400 font-mono text-[10px]" x-text="new Date(log.created_at).toLocaleTimeString('fa-IR', {hour12:false})"></td>
+                                <td class="px-6 py-3 whitespace-nowrap">
+                                    <span class="badge text-[10px] py-0 px-1.5" :class="{
+                                        'badge-error': log.status === 'ERROR',
+                                        'badge-warning': log.status === 'WARN',
+                                        'badge-success': ['INFO', 'SUCCESS'].includes(log.status)
+                                    }" x-text="log.status"></span>
+                                </td>
+                                <td class="px-6 py-3 whitespace-nowrap font-medium text-zinc-800 dark:text-zinc-200" x-text="log.workflow_name || '-'"></td>
+                                <td class="px-6 py-3 whitespace-nowrap text-zinc-500 font-mono text-[10px]" x-text="log.step_name || '-'"></td>
+                                <td class="px-6 py-3 text-zinc-600 dark:text-zinc-400 break-all select-text font-normal" x-text="log.message"></td>
+                                <td class="px-6 py-3 whitespace-nowrap text-center">
+                                    <template x-if="log.screenshot_path">
+                                        <a :href="'/api/logs/' + log.id + '/screenshot'" target="_blank" class="text-zinc-800 hover:text-black dark:text-zinc-200 dark:hover:text-white inline-flex p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors" title="مشاهده اسکرین‌شات">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </a>
+                                    </template>
+                                    <template x-if="!log.screenshot_path">
+                                        <span class="text-zinc-300 dark:text-zinc-700 select-none">-</span>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
                 </tbody>
             </table>
         </div>
         
-        <!-- Pagination -->
-        <div class="bg-white dark:bg-gray-900 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 sm:px-6">
-            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <!-- Pagination Controls -->
+        <div class="px-6 py-3.5 bg-zinc-50 dark:bg-zinc-900/30 flex items-center justify-between border-t border-gray-150 dark:border-zinc-800/80">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <button @click="prevPage()" :disabled="offset === 0" class="btn btn-outline text-xs px-3 py-1.5 disabled:opacity-40">قبلی</button>
+                <button @click="nextPage()" :disabled="offset + limit >= total" class="btn btn-outline text-xs px-3 py-1.5 disabled:opacity-40">بعدی</button>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between text-xs text-zinc-500">
                 <div>
-                    <p class="text-sm text-gray-700 dark:text-gray-300">
-                        نمایش <span class="font-medium">۱</span> تا <span class="font-medium">۱۰</span> از <span class="font-medium">۹۷</span> نتیجه
+                    <p>
+                        نمایش <span class="font-medium text-zinc-700 dark:text-zinc-300" x-text="logs.length > 0 ? offset + 1 : 0"></span> تا 
+                        <span class="font-medium text-zinc-700 dark:text-zinc-300" x-text="offset + logs.length"></span> از 
+                        <span class="font-medium text-zinc-700 dark:text-zinc-300" x-text="total"></span> ردیف لاگ
                     </p>
                 </div>
-                <div>
-                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <span class="sr-only">قبلی</span>
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </a>
-                        <a href="#" aria-current="page" class="z-10 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-600 dark:text-indigo-400 relative inline-flex items-center px-4 py-2 border text-sm font-medium">۱</a>
-                        <a href="#" class="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 relative inline-flex items-center px-4 py-2 border text-sm font-medium">۲</a>
-                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <span class="sr-only">بعدی</span>
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                        </a>
-                    </nav>
+                <div class="flex gap-2">
+                    <button @click="prevPage()" :disabled="offset === 0" class="btn btn-outline text-[11px] py-1 px-3 disabled:opacity-40 select-none">
+                        قبلی
+                    </button>
+                    <button @click="nextPage()" :disabled="offset + limit >= total" class="btn btn-outline text-[11px] py-1 px-3 disabled:opacity-40 select-none">
+                        بعدی
+                    </button>
                 </div>
             </div>
         </div>

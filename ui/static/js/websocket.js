@@ -17,9 +17,14 @@ class AutomationWebSocket {
             this.reconnectAttempts = 0;
             this.startHeartbeat();
             
-            // Show connection toast if we were disconnected
-            if (this.reconnectAttempts > 0) {
-                Alpine.store('globalStore').showToast('اتصال به سرور برقرار شد', 'success', 3000);
+            // Set engine status to what it actually is (or fetch it)
+            const store = Alpine.store('globalStore');
+            if (store) {
+                // If it was offline, restore status
+                if (store.engineState === 'OFFLINE') {
+                    store.engineState = 'IDLE';
+                    store.engineStateText = 'آماده';
+                }
             }
         };
 
@@ -35,17 +40,24 @@ class AutomationWebSocket {
         this.ws.onclose = () => {
             console.log('WebSocket Disconnected');
             this.stopHeartbeat();
+            
+            const store = Alpine.store('globalStore');
+            if (store) {
+                store.engineState = 'OFFLINE';
+                store.engineStateText = 'آفلاین (قطع اتصال)';
+            }
+            
             this.handleReconnect();
         };
 
         this.ws.onerror = (error) => {
             console.error('WebSocket Error', error);
-            // onclose will be called after onerror usually
         };
     }
 
     handleMessage(message) {
         const store = Alpine.store('globalStore');
+        if (!store) return;
         
         switch (message.type) {
             case 'state_changed':
@@ -62,7 +74,6 @@ class AutomationWebSocket {
                 break;
                 
             case 'log_entry':
-                // We'll dispatch a custom event that logs.html or dashboard.html can listen to
                 window.dispatchEvent(new CustomEvent('new-log', { detail: message.data }));
                 break;
                 
@@ -88,15 +99,11 @@ class AutomationWebSocket {
             this.reconnectAttempts++;
             console.log(`Reconnecting... Attempt ${this.reconnectAttempts}`);
             
-            if (this.reconnectAttempts === 1) {
-                Alpine.store('globalStore').showToast('ارتباط با سرور قطع شد، در حال اتصال مجدد...', 'warning', 0);
-            }
-            
             setTimeout(() => {
                 this.connect();
             }, this.reconnectDelay * this.reconnectAttempts);
         } else {
-            Alpine.store('globalStore').showToast('اتصال به سرور کاملا قطع شده است. لطفا برنامه را دوباره اجرا کنید.', 'error', 0);
+            console.error('WebSocket Reconnection failed completely.');
         }
     }
 
@@ -118,15 +125,12 @@ class AutomationWebSocket {
 
 // Initialize WebSocket when Alpine is ready
 document.addEventListener('alpine:init', () => {
-    // Determine WS URL based on current host
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Using default port 8765 if we are opening directly, or window.location.host if served from FastAPI
     const host = window.location.host || 'localhost:8765';
     const wsUrl = `${protocol}//${host}/ws`;
     
     window.autoWs = new AutomationWebSocket(wsUrl);
     
-    // Defer connection slightly to ensure Alpine is fully mounted
     setTimeout(() => {
         window.autoWs.connect();
     }, 500);

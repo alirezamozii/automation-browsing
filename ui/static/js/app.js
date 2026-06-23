@@ -6,7 +6,7 @@ document.addEventListener('alpine:init', () => {
         currentRoute: 'dashboard',
         
         // Engine State
-        engineState: 'IDLE', // IDLE, RUNNING, PAUSED, ERROR
+        engineState: 'IDLE', // IDLE, RUNNING, PAUSED, ERROR, OFFLINE
         engineStateText: 'آماده',
         currentWorkflow: null,
         currentStepIndex: 0,
@@ -38,40 +38,37 @@ document.addEventListener('alpine:init', () => {
             localStorage.setItem('uiLevel', level);
         },
         
-        // Notification System (Toast)
-        showToast(message, type = 'info', duration = 5000) {
+        // Layout-safe Monochromatic Notification System (Toast)
+        showToast(message, type = 'info', duration = 4000) {
             const container = document.getElementById('toast-container');
             if (!container) return;
             
             const id = 'toast-' + Date.now();
             const toast = document.createElement('div');
             
-            // Icon mapping
+            // Minimal Icon mapping
             let icon = '';
-            let styleClass = '';
+            let borderClass = 'border-gray-200 dark:border-gray-800';
             
             if (type === 'success') {
-                icon = '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                styleClass = 'border-green-500/50 bg-green-50/50 dark:bg-green-900/20';
+                icon = '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
             } else if (type === 'error') {
-                icon = '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-                styleClass = 'border-red-500/50 bg-red-50/50 dark:bg-red-900/20';
+                icon = '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                borderClass = 'border-red-200 dark:border-red-950/50';
             } else if (type === 'warning') {
-                icon = '<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
-                styleClass = 'border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-900/20';
+                icon = '<svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
             } else {
-                icon = '<svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                styleClass = 'border-indigo-500/50 bg-indigo-50/50 dark:bg-indigo-900/20';
+                icon = '<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
             }
             
             toast.id = id;
-            toast.className = `toast slide-in-right ${styleClass} mb-2`;
+            toast.className = `toast slide-in-right ${borderClass} mb-2 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100`;
             toast.innerHTML = `
-                <div class="flex items-center gap-3 w-full">
-                    <div class="shrink-0">${icon}</div>
-                    <div class="flex-1 font-medium text-sm">${message}</div>
-                    <button onclick="document.getElementById('${id}').remove()" class="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <div class="flex items-center gap-2.5 w-full">
+                    <div class="shrink-0 flex items-center justify-center">${icon}</div>
+                    <div class="flex-1 font-normal text-xs leading-normal">${message}</div>
+                    <button onclick="document.getElementById('${id}').remove()" class="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
             `;
@@ -83,17 +80,15 @@ document.addEventListener('alpine:init', () => {
                     const t = document.getElementById(id);
                     if (t) {
                         t.style.opacity = '0';
-                        t.style.transform = 'translateX(100%)';
-                        t.style.transition = 'all 0.3s ease';
-                        setTimeout(() => t.remove(), 300);
+                        t.style.transform = 'translateX(-20px)';
+                        t.style.transition = 'all 0.2s ease';
+                        setTimeout(() => t.remove(), 200);
                     }
                 }, duration);
             }
         },
         
         playSound(type = 'alert') {
-            // type can be 'alert', 'success', 'error'
-            // We will load a generic alert sound if available
             try {
                 const audio = new Audio(`/static/js/sounds/${type}.mp3`);
                 audio.play().catch(e => console.log('Audio play prevented by browser policy'));

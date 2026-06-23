@@ -1,34 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}تنظیمات سیستم{% endblock %}
+{% block title %}تنظیمات سیستم اتوماسیون{% endblock %}
 {% block route %}settings{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-3xl mx-auto space-y-6">
     
     <!-- User Interface Settings -->
     <div class="card p-6">
-        <h3 class="text-lg font-bold border-b border-gray-200 dark:border-gray-800 pb-3 mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        <h3 class="text-sm font-semibold border-b border-gray-150 dark:border-zinc-800 pb-3 mb-4 flex items-center gap-2 text-zinc-800 dark:text-zinc-200 select-none">
+            <svg class="w-4.5 h-4.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
             تنظیمات رابط کاربری
         </h3>
         
         <div class="space-y-4">
             <!-- UI Level -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">سطح دسترسی کاربری</label>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div @click="setUiLevel('simple')" :class="uiLevel === 'simple' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700'" class="border rounded-lg p-4 cursor-pointer hover:border-indigo-300 transition-colors">
-                        <div class="font-bold text-gray-900 dark:text-gray-100 mb-1">ساده</div>
-                        <div class="text-xs text-gray-500">فقط اجرای فرآیندها و مشاهده وضعیت. مناسب برای کاربران نهایی.</div>
+                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-2 select-none">سطح دسترسی کاربری</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Simple UI Option -->
+                    <div @click="setUiLevel('simple')" 
+                         :class="uiLevel === 'simple' ? 'border-zinc-950 bg-zinc-50/50 dark:border-zinc-100 dark:bg-zinc-900/30' : 'border-gray-200 dark:border-zinc-800/80'" 
+                         class="border rounded p-4 cursor-pointer hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 transition-colors">
+                        <div class="font-bold text-zinc-800 dark:text-zinc-200 text-xs mb-1">ساده</div>
+                        <div class="text-[10px] text-zinc-400 leading-normal">فقط اجرای فرآیندها و مشاهده وضعیت. مناسب برای کاربران نهایی.</div>
                     </div>
-                    <div @click="setUiLevel('normal')" :class="uiLevel === 'normal' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700'" class="border rounded-lg p-4 cursor-pointer hover:border-indigo-300 transition-colors">
-                        <div class="font-bold text-gray-900 dark:text-gray-100 mb-1">معمولی</div>
-                        <div class="text-xs text-gray-500">مشاهده لاگ‌ها، آمارها و تاریخچه. مناسب برای سرپرست‌ها.</div>
+                    
+                    <!-- Normal UI Option -->
+                    <div @click="setUiLevel('normal')" 
+                         :class="uiLevel === 'normal' ? 'border-zinc-950 bg-zinc-50/50 dark:border-zinc-100 dark:bg-zinc-900/30' : 'border-gray-200 dark:border-zinc-800/80'" 
+                         class="border rounded p-4 cursor-pointer hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 transition-colors">
+                        <div class="font-bold text-zinc-800 dark:text-zinc-200 text-xs mb-1">معمولی</div>
+                        <div class="text-[10px] text-zinc-400 leading-normal">مشاهده لاگ‌ها، آمارها و تاریخچه فرآیندها. مناسب برای سرپرستان سیستم.</div>
                     </div>
-                    <div @click="setUiLevel('developer')" :class="uiLevel === 'developer' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700'" class="border rounded-lg p-4 cursor-pointer hover:border-indigo-300 transition-colors">
-                        <div class="font-bold text-gray-900 dark:text-gray-100 mb-1">توسعه‌دهنده</div>
-                        <div class="text-xs text-gray-500">دسترسی به State Machine، دیباگ، لاگ‌های خام.</div>
+                    
+                    <!-- Developer UI Option -->
+                    <div @click="setUiLevel('developer')" 
+                         :class="uiLevel === 'developer' ? 'border-zinc-950 bg-zinc-50/50 dark:border-zinc-100 dark:bg-zinc-900/30' : 'border-gray-200 dark:border-zinc-800/80'" 
+                         class="border rounded p-4 cursor-pointer hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10 transition-colors">
+                        <div class="font-bold text-zinc-800 dark:text-zinc-200 text-xs mb-1">توسعه‌دهنده</div>
+                        <div class="text-[10px] text-zinc-400 leading-normal">دسترسی به دیباگ ماشین حالت، ابزار لایو اینسپکتور و لاگ‌های خام وب‌ساکت.</div>
                     </div>
                 </div>
             </div>
@@ -36,44 +47,84 @@
     </div>
 
     <!-- Engine Settings -->
-    <div class="card p-6">
-        <h3 class="text-lg font-bold border-b border-gray-200 dark:border-gray-800 pb-3 mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+    <div class="card p-6" x-data="{
+        timeout: 30000,
+        maxRetries: 3,
+        chromeProfile: '%APPDATA%\\AutomationPlatform\\chrome_profile',
+        
+        init() {
+            // In a real app, we fetch current settings from /api/settings here
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(data => {
+                    // Update variables if returned
+                    if(data.settings) {
+                        this.timeout = data.settings.default_timeout || 30000;
+                        this.maxRetries = data.settings.max_retries || 3;
+                        this.chromeProfile = data.settings.chrome_profile_path || '';
+                    }
+                }).catch(err => console.log('Could not load settings API:', err));
+        },
+        
+        save() {
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    default_timeout: parseInt(this.timeout),
+                    max_retries: parseInt(this.maxRetries),
+                    chrome_profile_path: this.chromeProfile
+                })
+            })
+            .then(r => r.json())
+            .then(() => {
+                Alpine.store('globalStore').showToast('تنظیمات موتور با موفقیت ذخیره شد', 'success');
+            })
+            .catch(err => {
+                console.error(err);
+                Alpine.store('globalStore').showToast('ذخیره تنظیمات با خطا مواجه شد', 'error');
+            });
+        }
+    }">
+        <h3 class="text-sm font-semibold border-b border-gray-150 dark:border-zinc-800 pb-3 mb-4 flex items-center gap-2 text-zinc-800 dark:text-zinc-200 select-none">
+            <svg class="w-4.5 h-4.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             تنظیمات موتور اتوماسیون
         </h3>
         
-        <div class="space-y-4">
+        <div class="space-y-4 text-xs">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Timeout input -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">زمان انتظار پیش‌فرض (Timeout)</label>
-                    <div class="relative rounded-md shadow-sm">
-                        <input type="number" value="30000" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-3 sm:text-sm border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left" dir="ltr">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm">ms</span>
+                    <label class="block font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 select-none">زمان انتظار پیش‌فرض (Timeout)</label>
+                    <div class="relative rounded">
+                        <input type="number" x-model="timeout" class="focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 block w-full pl-12 pr-3 py-1.5 border border-gray-200 dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 text-left text-xs font-mono" dir="ltr">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[10px] text-zinc-400 font-mono">
+                            <span>ms</span>
                         </div>
                     </div>
-                    <p class="mt-1 text-xs text-gray-500">میزان صبر برای پیدایش المان‌ها در صفحه.</p>
+                    <p class="mt-1 text-[10px] text-zinc-400">میزان حداکثر زمان انتظار برای پیدا کردن المان‌ها در صفحه.</p>
                 </div>
                 
+                <!-- Max retries input -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">تعداد تلاش مجدد (Max Retries)</label>
-                    <input type="number" value="3" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left" dir="ltr">
-                    <p class="mt-1 text-xs text-gray-500">تعداد دفعاتی که در صورت بروز خطا، مرحله دوباره اجرا شود.</p>
+                    <label class="block font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 select-none">تعداد تلاش مجدد (Max Retries)</label>
+                    <input type="number" x-model="maxRetries" class="focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 block w-full py-1.5 px-3 border border-gray-200 dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 text-left text-xs font-mono" dir="ltr">
+                    <p class="mt-1 text-[10px] text-zinc-400">تعداد دفعاتی که در صورت رخ دادن خطا، موتور مجدداً گام را اجرا می‌کند.</p>
                 </div>
             </div>
             
+            <!-- User Data profile path -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">مسیر پروفایل مرورگر (Chrome User Data)</label>
-                <input type="text" value="%APPDATA%\AutomationPlatform\chrome_profile" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left" dir="ltr">
-                <p class="mt-1 text-xs text-gray-500">مسیری که کوکی‌ها و اطلاعات لاگین مرورگر ذخیره می‌شود.</p>
+                <label class="block font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 select-none">مسیر پروفایل مرورگر Chrome</label>
+                <input type="text" x-model="chromeProfile" class="focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 block w-full py-1.5 px-3 border border-gray-200 dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 text-left text-xs font-mono" dir="ltr">
+                <p class="mt-1 text-[10px] text-zinc-400">محل ذخیره‌سازی داده‌های کوکی، سشن‌ها و لاگین اکانت کروم سیستم اتوماسیون.</p>
             </div>
         </div>
+        
+        <div class="flex justify-end gap-3 mt-6 border-t border-gray-100 dark:border-zinc-800/40 pt-4">
+            <button class="btn btn-ghost text-xs px-4 py-1.5">انصراف</button>
+            <button class="btn btn-primary text-xs px-6 py-1.5" @click="save()">ذخیره تنظیمات</button>
+        </div>
     </div>
-    
-    <div class="flex justify-end gap-4">
-        <button class="btn btn-ghost">انصراف</button>
-        <button class="btn btn-primary px-8" onclick="Alpine.store('globalStore').showToast('تنظیمات با موفقیت ذخیره شد', 'success')">ذخیره تنظیمات</button>
-    </div>
-
 </div>
 {% endblock %}

@@ -10,7 +10,6 @@
     
     <!-- Tailwind & Alpine JS (Local) -->
     <script src="/static/css/tailwind.min.js"></script>
-    <!-- Alpine JS Plugins if needed can be added here -->
     <script defer src="/static/js/alpine.min.js"></script>
     
     <!-- Tailwind Configuration -->
@@ -22,101 +21,94 @@
                     fontFamily: {
                         sans: ['Vazirmatn', 'sans-serif'],
                     },
-                    colors: {
-                        indigo: {
-                            400: '#818CF8',
-                            500: '#6366F1',
-                            600: '#4F46E5',
-                        }
-                    }
                 }
             }
         }
     </script>
 </head>
-<body x-data="$store.globalStore" class="flex h-screen overflow-hidden antialiased selection:bg-indigo-500 selection:text-white">
+<body x-data="$store.globalStore" class="flex h-screen overflow-hidden antialiased selection:bg-gray-200 dark:selection:bg-zinc-800 selection:text-black dark:selection:text-white">
     
     <!-- Toast Notifications Container -->
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Sidebar -->
-    <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="flex-shrink-0 card-glass border-r border-y-0 border-l-0 flex flex-col transition-all duration-300 z-20">
-        <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
-            <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-                <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+    <aside :class="sidebarOpen ? 'w-64' : 'w-16'" class="flex-shrink-0 bg-[var(--sidebar-bg)] border-l border-gray-200 dark:border-zinc-800/80 flex flex-col transition-all duration-200 z-20">
+        <div class="h-14 flex items-center justify-between px-3.5 border-b border-gray-200/80 dark:border-zinc-800/50">
+            <div class="flex items-center gap-2.5 overflow-hidden whitespace-nowrap">
+                <div class="w-6 h-6 rounded bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-bold shrink-0">
+                    <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <span x-show="sidebarOpen" x-transition.opacity class="font-bold text-lg tracking-tight">اتوماسیون</span>
+                <span x-show="sidebarOpen" x-transition.opacity class="font-semibold text-sm tracking-tight text-zinc-800 dark:text-zinc-200">اتوماسیون</span>
             </div>
-            <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 hover:text-indigo-500 transition-colors shrink-0">
-                <svg x-show="sidebarOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                <svg x-show="!sidebarOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            <button @click="sidebarOpen = !sidebarOpen" class="text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors shrink-0">
+                <svg x-show="sidebarOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <svg x-show="!sidebarOpen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
         </div>
 
-        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
             <!-- Navigation Links -->
-            <a href="/" :class="currentRoute === 'dashboard' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap">داشبورد</span>
+            <a href="/" :class="currentRoute === 'dashboard' ? 'bg-[var(--hover-bg-active)] text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-500 dark:text-zinc-400 hover:bg-[var(--hover-bg)] hover:text-zinc-900 dark:hover:text-zinc-100'" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded transition-colors group text-sm">
+                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap">داشبورد</span>
             </a>
             
-            <a href="/workflows" :class="currentRoute === 'workflows' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap">فرآیندها (Workflows)</span>
+            <a href="/workflows" :class="currentRoute === 'workflows' ? 'bg-[var(--hover-bg-active)] text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-500 dark:text-zinc-400 hover:bg-[var(--hover-bg)] hover:text-zinc-900 dark:hover:text-zinc-100'" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded transition-colors group text-sm">
+                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap">فرآیندها</span>
             </a>
 
-            <a href="/logs" :class="currentRoute === 'logs' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap">لاگ‌ها</span>
+            <a href="/logs" :class="currentRoute === 'logs' ? 'bg-[var(--hover-bg-active)] text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-500 dark:text-zinc-400 hover:bg-[var(--hover-bg)] hover:text-zinc-900 dark:hover:text-zinc-100'" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded transition-colors group text-sm">
+                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap">لاگ‌ها</span>
             </a>
 
-            <a href="/settings" :class="currentRoute === 'settings' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50'" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap">تنظیمات</span>
+            <a href="/settings" :class="currentRoute === 'settings' ? 'bg-[var(--hover-bg-active)] text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-500 dark:text-zinc-400 hover:bg-[var(--hover-bg)] hover:text-zinc-900 dark:hover:text-zinc-100'" class="flex items-center gap-2.5 px-2.5 py-1.5 rounded transition-colors group text-sm">
+                <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap">تنظیمات</span>
             </a>
         </nav>
 
-        <div class="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
+        <div class="p-2 border-t border-gray-200/80 dark:border-zinc-800/50 space-y-1">
             <!-- Theme Toggle -->
-            <button @click="toggleTheme()" class="flex items-center justify-center w-full gap-3 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
-                <svg x-show="theme === 'light'" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                <svg x-show="theme === 'dark'" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap" x-text="theme === 'light' ? 'حالت تاریک' : 'حالت روشن'"></span>
+            <button @click="toggleTheme()" class="flex items-center justify-center w-full gap-2 px-2.5 py-1.5 rounded text-zinc-500 hover:bg-[var(--hover-bg)] hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors text-sm">
+                <svg x-show="theme === 'light'" class="w-4.5 h-4.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <svg x-show="theme === 'dark'" class="w-4.5 h-4.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap" x-text="theme === 'light' ? 'حالت تاریک' : 'حالت روشن'"></span>
             </button>
             
-            <!-- Dev Mode Toggle (Only visible if uiLevel is developer) -->
-            <a x-show="uiLevel === 'developer'" href="/developer" :class="currentRoute === 'developer' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400' : 'text-purple-600/70 dark:text-purple-400/70 hover:bg-purple-50 dark:hover:bg-purple-900/20'" class="flex items-center justify-center w-full gap-3 px-3 py-2 rounded-lg transition-colors border border-purple-200 dark:border-purple-800/50">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                <span x-show="sidebarOpen" class="font-medium whitespace-nowrap">ابزار توسعه‌دهنده</span>
+            <!-- Dev Mode Toggle (Monochromatic outline style) -->
+            <a x-show="uiLevel === 'developer'" href="/developer" :class="currentRoute === 'developer' ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-950 font-medium' : 'text-zinc-500 dark:text-zinc-400 hover:bg-[var(--hover-bg)] hover:text-zinc-900 dark:hover:text-zinc-100'" class="flex items-center justify-center w-full gap-2 px-2.5 py-1.5 rounded transition-colors border border-gray-200 dark:border-zinc-800 text-sm">
+                <svg class="w-4.5 h-4.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                <span x-show="sidebarOpen" class="whitespace-nowrap">توسعه‌دهنده</span>
             </a>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col relative overflow-hidden bg-gray-50/50 dark:bg-transparent">
-        <header class="h-16 flex items-center justify-between px-8 border-b border-gray-200 dark:border-gray-800 card-glass z-10 shrink-0">
-            <h1 class="text-xl font-bold tracking-tight">{% block title %}عنوان صفحه{% endblock %}</h1>
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-white dark:bg-zinc-950">
+        <header class="h-14 flex items-center justify-between px-6 border-b border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 z-10 shrink-0">
+            <h1 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{% block title %}عنوان صفحه{% endblock %}</h1>
             <div class="flex items-center gap-4">
-                <!-- Global Status Indicator -->
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-                    <span class="relative flex h-3 w-3">
-                      <span x-show="engineState === 'RUNNING'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3" 
+                <!-- Global Status Indicator (Monochromatic) -->
+                <div class="flex items-center gap-2 px-2.5 py-1 rounded border border-gray-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                    <span class="relative flex h-2 w-2">
+                      <span x-show="engineState === 'RUNNING'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-400 dark:bg-zinc-500 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2" 
                             :class="{
-                                'bg-gray-400': engineState === 'IDLE',
-                                'bg-indigo-500': engineState === 'RUNNING',
+                                'bg-gray-300 dark:bg-zinc-600': engineState === 'IDLE',
+                                'bg-black dark:bg-white': engineState === 'RUNNING',
                                 'bg-yellow-500': engineState === 'PAUSED',
-                                'bg-red-500': engineState === 'ERROR'
+                                'bg-red-500': ['ERROR', 'OFFLINE'].includes(engineState)
                             }"></span>
                     </span>
-                    <span class="text-sm font-medium" x-text="engineStateText">آماده</span>
+                    <span class="text-xs font-normal text-zinc-600 dark:text-zinc-400" x-text="engineStateText">آماده</span>
                 </div>
             </div>
         </header>
         
-        <div class="flex-1 overflow-y-auto p-8 fade-in">
-            <div class="max-w-7xl mx-auto">
+        <div class="flex-1 overflow-y-auto p-6 fade-in">
+            <div class="max-w-5xl mx-auto">
                 {% block content %}
                 <!-- Content goes here -->
                 {% endblock %}
@@ -128,7 +120,6 @@
     <script src="/static/js/app.js"></script>
     <script src="/static/js/websocket.js"></script>
     <script>
-        // Set current route based on template rendering
         document.addEventListener('alpine:init', () => {
             Alpine.store('globalStore').currentRoute = '{% block route %}dashboard{% endblock %}';
         });

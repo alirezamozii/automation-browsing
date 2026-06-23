@@ -1,35 +1,41 @@
 {% extends "base.html" %}
 
-{% block title %}ابزار توسعه‌دهنده{% endblock %}
+{% block title %}ابزار توسعه‌دهنده و دیباگ سیستم{% endblock %}
 {% block route %}developer{% endblock %}
 
 {% block content %}
 <div class="space-y-6" x-data="{ activeTab: 'state_machine' }">
     
-    <!-- Dev Tabs -->
-    <div class="border-b border-gray-200 dark:border-gray-800">
-        <nav class="-mb-px flex space-x-8 rtl:space-x-reverse" aria-label="Tabs">
-            <button @click="activeTab = 'state_machine'" :class="activeTab === 'state_machine' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                State Machine
+    <!-- Dev Tabs (Monochromatic Notion style) -->
+    <div class="border-b border-gray-150 dark:border-zinc-800/80">
+        <nav class="-mb-px flex space-x-6 rtl:space-x-reverse" aria-label="Tabs">
+            <button @click="activeTab = 'state_machine'" 
+                    :class="activeTab === 'state_machine' ? 'border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'" 
+                    class="whitespace-nowrap py-3 px-1 border-b-2 text-xs transition-all">
+                ماشین حالت (State Machine)
             </button>
-            <button @click="activeTab = 'raw_logs'" :class="activeTab === 'raw_logs' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                لاگ‌های خام (Console)
+            <button @click="activeTab = 'raw_logs'" 
+                    :class="activeTab === 'raw_logs' ? 'border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'" 
+                    class="whitespace-nowrap py-3 px-1 border-b-2 text-xs transition-all">
+                لاگ‌های خام وب‌ساکت (Raw)
             </button>
-            <button @click="activeTab = 'inspector'" :class="activeTab === 'inspector' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
-                Element Inspector
+            <button @click="activeTab = 'inspector'" 
+                    :class="activeTab === 'inspector' ? 'border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'" 
+                    class="whitespace-nowrap py-3 px-1 border-b-2 text-xs transition-all">
+                Inspector ابزارها
             </button>
         </nav>
     </div>
 
     <!-- State Machine Tab -->
-    <div x-show="activeTab === 'state_machine'" class="space-y-6 fade-in">
-        <div class="card p-6">
+    <div x-show="activeTab === 'state_machine'" class="space-y-6 fade-in text-xs">
+        <div class="card p-5">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold">وضعیت موتور (Engine State)</h3>
-                <button class="btn btn-outline border-purple-200 text-purple-600 dark:border-purple-800 dark:text-purple-400 text-sm py-1 px-3">Force Reload State</button>
+                <h3 class="font-semibold text-zinc-800 dark:text-zinc-200">وضعیت فنی موتور (JSON State)</h3>
+                <button @click="location.reload()" class="btn btn-outline text-[11px] py-1 px-3">به‌روزرسانی کل صفحه</button>
             </div>
             
-            <div class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto" dir="ltr">
+            <div class="bg-zinc-50 dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded p-4 font-mono text-[11px] text-zinc-700 dark:text-zinc-300 overflow-x-auto" dir="ltr">
 <pre x-text="JSON.stringify({
     engineState: engineState,
     engineStateText: engineStateText,
@@ -40,63 +46,78 @@
             </div>
         </div>
 
-        <div class="card p-6">
-            <h3 class="font-bold mb-4">تغییر وضعیت دستی (Force Transition)</h3>
-            <div class="flex gap-4">
-                <select id="force-state" class="block w-64 rounded-md border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus:border-purple-500 focus:ring-purple-500 py-2 px-3 text-left" dir="ltr">
+        <div class="card p-5">
+            <h3 class="font-semibold text-zinc-800 dark:text-zinc-200 mb-2">تغییر وضعیت موتور به صورت دستی (Force Transition)</h3>
+            <p class="text-[10px] text-zinc-400 mb-4">فقط برای اهداف دیباگ و تست استیت‌ها استفاده شود.</p>
+            
+            <div class="flex gap-3">
+                <select id="force-state" class="block w-48 rounded border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:border-zinc-400 focus:ring-zinc-400 py-1.5 px-3 text-[11px]" dir="ltr">
                     <option value="IDLE">IDLE</option>
                     <option value="STARTING">STARTING</option>
-                    <option value="LOGIN">LOGIN</option>
+                    <option value="RUNNING">RUNNING</option>
                     <option value="PAUSED">PAUSED</option>
                     <option value="ERROR">ERROR</option>
                 </select>
-                <button class="btn bg-purple-600 hover:bg-purple-700 text-white" onclick="alert('API Call: /api/developer/force_state')">اجرا (Force)</button>
+                <button class="btn btn-primary text-[11px] px-5 py-1.5" onclick="alert('توسعه این کنترل در فازهای بعدی انجام خواهد شد.')">ثبت استیت (Force)</button>
             </div>
-            <p class="text-xs text-red-500 mt-2">توجه: استفاده از این بخش ممکن است باعث خرابی روند اجرای فرآیند شود.</p>
         </div>
     </div>
 
     <!-- Raw Logs Tab -->
-    <div x-show="activeTab === 'raw_logs'" class="fade-in card p-0 overflow-hidden flex flex-col" style="height: 600px;">
-        <div class="bg-gray-100 dark:bg-gray-800 p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
-            <button class="px-3 py-1 bg-white dark:bg-gray-700 rounded text-xs border border-gray-200 dark:border-gray-600">Clear</button>
-            <label class="flex items-center gap-1 text-xs px-2"><input type="checkbox" checked> DEBUG</label>
-            <label class="flex items-center gap-1 text-xs px-2"><input type="checkbox" checked> INFO</label>
-            <label class="flex items-center gap-1 text-xs px-2"><input type="checkbox" checked> WARN</label>
-            <label class="flex items-center gap-1 text-xs px-2"><input type="checkbox" checked> ERROR</label>
+    <div x-show="activeTab === 'raw_logs'" class="fade-in card p-0 overflow-hidden flex flex-col" style="height: 500px;">
+        <div class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 border-b border-gray-200 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500">
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('raw-console').innerHTML=''" class="px-2 py-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-700/60 rounded">پاک کردن مانیتور</button>
+            </div>
+            <div class="flex gap-3 select-none">
+                <label class="flex items-center gap-1"><input type="checkbox" checked class="rounded text-zinc-900 focus:ring-zinc-400 border-gray-300"> INFO</label>
+                <label class="flex items-center gap-1"><input type="checkbox" checked class="rounded text-zinc-900 focus:ring-zinc-400 border-gray-300"> DEBUG</label>
+                <label class="flex items-center gap-1"><input type="checkbox" checked class="rounded text-zinc-900 focus:ring-zinc-400 border-gray-300"> WARN</label>
+                <label class="flex items-center gap-1"><input type="checkbox" checked class="rounded text-zinc-900 focus:ring-zinc-400 border-gray-300"> ERROR</label>
+            </div>
         </div>
-        <div class="flex-1 bg-black text-gray-300 font-mono text-xs p-4 overflow-y-auto" dir="ltr" id="raw-console">
-            <div class="text-gray-500">System initialized. Waiting for raw logs...</div>
+        <div class="flex-1 bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] p-4 overflow-y-auto leading-relaxed select-text" dir="ltr" id="raw-console">
+            <div class="text-zinc-400 italic">سیستم مقداردهی شد. منتظر دریافت رویدادهای زنده وب‌ساکت...</div>
         </div>
     </div>
 
     <!-- Inspector Tab -->
-    <div x-show="activeTab === 'inspector'" class="fade-in card p-6 text-center">
-        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-        <h3 class="text-xl font-bold mb-2">ابزار ضبط سلکتور (Locator Recorder)</h3>
-        <p class="text-gray-500 mb-6">این بخش در فازهای بعدی به قابلیت Record از Playwright متصل می‌شود.</p>
-        <button class="btn btn-outline cursor-not-allowed text-gray-400 border-gray-300 dark:border-gray-700" disabled>شروع ضبط مرورگر</button>
+    <div x-show="activeTab === 'inspector'" class="fade-in card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+        <svg class="w-10 h-10 text-zinc-300 dark:text-zinc-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+        <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-1 select-none">ابزار ضبط سلکتور (Locator Recorder)</h3>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 max-w-sm leading-normal">این قابلیت در نسخه‌های بعدی با Playwright Inspector جهت ضبط اتوماتیک سلکتورهای صفحات وب ترکیب خواهد شد.</p>
     </div>
 
 </div>
 
 <script>
-    // Copy new logs to raw console if tab is raw_logs
+    // Console listener
     window.addEventListener('new-log', (e) => {
         const consoleDiv = document.getElementById('raw-console');
         if (!consoleDiv) return;
         
+        // Remove empty state
+        if (consoleDiv.children.length === 1 && consoleDiv.children[0].classList.contains('italic')) {
+            consoleDiv.innerHTML = '';
+        }
+        
         const log = e.detail;
         const line = document.createElement('div');
-        line.className = 'py-0.5 hover:bg-gray-900';
+        line.className = 'py-0.5 border-b border-zinc-100/30 dark:border-zinc-900/30 flex gap-2 items-start';
         
-        let color = 'text-gray-300';
-        if(log.level === 'DEBUG') color = 'text-gray-500';
-        if(log.level === 'WARN') color = 'text-yellow-400';
-        if(log.level === 'ERROR') color = 'text-red-400';
-        if(log.level === 'INFO') color = 'text-blue-300';
+        let color = 'text-zinc-600 dark:text-zinc-400';
+        if(log.level === 'DEBUG') color = 'text-zinc-400 dark:text-zinc-650';
+        if(log.level === 'WARN') color = 'text-yellow-600 dark:text-yellow-400';
+        if(log.level === 'ERROR') color = 'text-red-500';
+        if(log.level === 'INFO') color = 'text-zinc-800 dark:text-zinc-200';
         
-        line.innerHTML = `<span class="text-gray-600">[${new Date().toISOString()}]</span> <span class="${color}">[${log.level}]</span> ${log.message}`;
+        const isoTime = new Date().toISOString().substring(11, 19);
+        
+        line.innerHTML = `
+            <span class="text-zinc-400 select-none shrink-0 font-normal">[${isoTime}]</span>
+            <span class="${color} shrink-0 w-10 select-none">[${log.level}]</span>
+            <span class="text-zinc-700 dark:text-zinc-300 break-all flex-1">${log.message}</span>
+        `;
         consoleDiv.appendChild(line);
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
     });
