@@ -294,7 +294,8 @@ async def startup_event():
     # ۶. باز کردن اتوماتیک مرورگر رابط کاربری در یک ترد جداگانه
     async def open_browser():
         await asyncio.sleep(2.0)
-        url = f"http://{API_HOST}:{API_PORT}"
+        actual_port = getattr(app.state, "port", API_PORT)
+        url = f"http://{API_HOST}:{actual_port}"
         logger.info(f"باز کردن پنل مدیریت در مرورگر پیش‌فرض سیستم: {url}")
         webbrowser.open(url)
         
@@ -320,4 +321,17 @@ async def shutdown_event():
 # ─── اجرای برنامه ────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host=API_HOST, port=API_PORT, reload=False)
+    import socket
+    
+    port = API_PORT
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((API_HOST, port))
+                break
+            except OSError:
+                logger.info(f"پورت {port} در حال استفاده است. تلاش برای پورت بعدی...")
+                port += 1
+                
+    app.state.port = port
+    uvicorn.run(app, host=API_HOST, port=port, reload=False)
