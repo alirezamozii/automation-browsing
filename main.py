@@ -134,7 +134,7 @@ def get_fallback_page(title: str, description: str) -> HTMLResponse:
 async def render_dashboard(request: Request):
     """صفحه داشبورد اصلی"""
     try:
-        return templates.TemplateResponse("dashboard.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="dashboard.html")
     except Exception as e:
         logger.error(f"خطای جدی در رندر داشبورد: {str(e)}", exc_info=True)
         return get_fallback_page("صفحه داشبورد", f"خطا در بارگذاری فرانت‌اند: {str(e)}")
@@ -145,7 +145,7 @@ async def render_workflow(request: Request):
     """صفحه جزئیات و مدیریت ورک‌فلوها"""
     try:
         # اصلاح باگ: نام فایل اصلاح شد به workflows.html
-        return templates.TemplateResponse("workflows.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="workflows.html")
     except Exception as e:
         logger.error(f"خطای جدی در رندر صفحه فرآیندها: {str(e)}", exc_info=True)
         return get_fallback_page("صفحه فرآیندها", f"خطا در بارگذاری فرانت‌اند فرآیندها: {str(e)}")
@@ -155,7 +155,7 @@ async def render_workflow(request: Request):
 async def render_logs(request: Request):
     """صفحه لاگ‌های اجرا"""
     try:
-        return templates.TemplateResponse("logs.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="logs.html")
     except Exception as e:
         logger.error(f"خطای جدی در رندر لاگ‌ها: {str(e)}", exc_info=True)
         return get_fallback_page("صفحه لاگ‌ها", f"خطا در بارگذاری فرانت‌اند لاگ‌ها: {str(e)}")
@@ -165,7 +165,7 @@ async def render_logs(request: Request):
 async def render_settings(request: Request):
     """صفحه تنظیمات پلتفرم"""
     try:
-        return templates.TemplateResponse("settings.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="settings.html")
     except Exception as e:
         logger.error(f"خطای جدی در رندر تنظیمات: {str(e)}", exc_info=True)
         return get_fallback_page("صفحه تنظیمات", f"خطا در بارگذاری فرانت‌اند تنظیمات: {str(e)}")
@@ -175,7 +175,7 @@ async def render_settings(request: Request):
 async def render_developer(request: Request):
     """صفحه ابزار توسعه‌دهندگان"""
     try:
-        return templates.TemplateResponse("developer.html", {"request": request})
+        return templates.TemplateResponse(request=request, name="developer.html")
     except Exception as e:
         logger.error(f"خطای جدی در رندر صفحه توسعه‌دهنده: {str(e)}", exc_info=True)
         return get_fallback_page("صفحه توسعه‌دهنده", f"خطا در بارگذاری فرانت‌اند توسعه‌دهنده: {str(e)}")
