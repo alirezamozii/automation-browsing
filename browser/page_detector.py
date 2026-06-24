@@ -8,7 +8,6 @@
 
 import asyncio
 import logging
-from typing import Any
 
 from playwright.async_api import Page
 

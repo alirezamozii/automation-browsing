@@ -8,7 +8,6 @@
 """
 
 import logging
-from typing import Any
 
 logger = logging.getLogger("automation_platform.locators.base")
 

@@ -19,7 +19,6 @@ from playwright.async_api import (
     Page,
     Playwright,
     async_playwright,
-    Download,
 )
 
 from browser.profile import ProfileManager

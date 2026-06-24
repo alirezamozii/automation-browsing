@@ -3,295 +3,332 @@
 setlocal
 cd /d "%~dp0"
 title Automation Platform Installer
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$_=(Get-Content '%~f0' -Raw); Invoke-Expression $_"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~f0"
 exit /b
 #>
 
+# ============================================================
+#  Automation Platform - Setup & Installer
+#  Fully self-contained PowerShell setup
+# ============================================================
+
 $ErrorActionPreference = 'Stop'
 $BaseDir = $PSScriptRoot
+if (-not $BaseDir) { $BaseDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 
-Write-Host "=========================================="
-Write-Host " Automation Platform - Web Installer"
-Write-Host "=========================================="
+Write-Host ""
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "  Automation Platform - Installer v2"      -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host ""
 
-# 1. Check for Python installation and dynamically determine latest version
+# ── Helper: yes/no prompt ────────────────────────────────────────────────────
 function Ask-YesNo ($Prompt, $DefaultYes = $false) {
     $suffix = if ($DefaultYes) { "[Y/n]" } else { "[y/N]" }
     while ($true) {
         $response = Read-Host "$Prompt $suffix"
-        if ([string]::IsNullOrWhiteSpace($response)) {
-            return $DefaultYes
-        }
-        if ($response -match '^[yY]') {
-            return $true
-        }
-        if ($response -match '^[nN]') {
-            return $false
-        }
-        Write-Host "Please enter 'y' for Yes or 'n' for No."
+        if ([string]::IsNullOrWhiteSpace($response)) { return $DefaultYes }
+        if ($response -match '^[yY]') { return $true }
+        if ($response -match '^[nN]') { return $false }
+        Write-Host "Please enter 'y' or 'n'."
     }
 }
 
-$InstalledPythonExe = $null
-$InstalledVersion = $null
+# ── Step 1: Find or install Python ──────────────────────────────────────────
+Write-Host "[1/5] Checking Python..." -ForegroundColor Yellow
 
-if (Test-Path "$BaseDir\python\python.exe") {
-    try {
-        $InstalledPythonExe = "$BaseDir\python\python.exe"
-        $versionInfo = & $InstalledPythonExe --version 2>&1
-        if ($versionInfo -match 'Python\s+([\d\.]+)') {
-            $InstalledVersion = $Matches[1]
-        }
-    } catch {
-        $InstalledPythonExe = $null
-        $InstalledVersion = $null
-    }
-}
-
-if (-not $InstalledPythonExe) {
-    try {
-        $SystemPython = Get-Command python -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($SystemPython) {
-            $InstalledPythonExe = $SystemPython.Source
-            $versionInfo = & $InstalledPythonExe --version 2>&1
-            if ($versionInfo -match 'Python\s+([\d\.]+)') {
-                $InstalledVersion = $Matches[1]
-            }
-        }
-    } catch {
-        $InstalledPythonExe = $null
-        $InstalledVersion = $null
-    }
-}
-
-Write-Host "`nChecking for the latest stable Python version..."
-$LatestVersion = $null
+# Check for latest stable version online
+$LatestVersion = "3.12.4"   # safe fallback
 try {
     $releases = Invoke-RestMethod -Uri "https://endoflife.date/api/python.json" -UseBasicParsing -TimeoutSec 10
     $Today = Get-Date
     foreach ($r in $releases) {
-        $relDate = [datetime]$r.releaseDate
-        if ($relDate -le $Today) {
-            $LatestVersion = $r.latest
-            break
-        }
+        try {
+            $relDate = [datetime]$r.releaseDate
+            if ($relDate -le $Today) { $LatestVersion = $r.latest; break }
+        } catch { continue }
     }
+    Write-Host "  Latest stable Python online: $LatestVersion"
 } catch {
-    Write-Host "Warning: Could not fetch latest Python version online. Using fallback."
+    Write-Host "  (Could not reach internet — using fallback version $LatestVersion)" -ForegroundColor DarkGray
 }
 
-if (-not $LatestVersion) {
-    $LatestVersion = "3.12.4"
+$PythonExe   = $null
+$InstalledVersion = $null
+$UsingPortable = $false
+
+# Prefer portable python bundled next to Setup.bat
+$PortablePy = "$BaseDir\python\python.exe"
+if (Test-Path $PortablePy) {
+    try {
+        $v = & $PortablePy --version 2>&1
+        if ($v -match 'Python\s+([\d\.]+)') {
+            $InstalledVersion = $Matches[1]
+            $PythonExe = $PortablePy
+            $UsingPortable = $true
+            Write-Host "  Found portable Python $InstalledVersion at .\python\"
+        }
+    } catch { }
 }
 
-Write-Host "Latest stable Python version online: $LatestVersion"
+# Fall back to system Python
+if (-not $PythonExe) {
+    try {
+        $sysPy = Get-Command python -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
+        if ($sysPy) {
+            $v = & $sysPy --version 2>&1
+            if ($v -match 'Python\s+([\d\.]+)') {
+                $InstalledVersion = $Matches[1]
+                $PythonExe = $sysPy
+                Write-Host "  Found system Python $InstalledVersion at $sysPy"
+            }
+        }
+    } catch { }
+}
 
 $ShouldInstall = $false
-
-if ($InstalledPythonExe) {
-    Write-Host "Found existing Python installation (version $InstalledVersion) at: $InstalledPythonExe"
+if (-not $PythonExe) {
+    Write-Host "  No Python found — will install portable Python $LatestVersion." -ForegroundColor Yellow
+    $ShouldInstall = $true
+} else {
     try {
-        $currVer = [version]$InstalledVersion
+        $currVer   = [version]$InstalledVersion
         $latestVer = [version]$LatestVersion
-        
         if ($latestVer -gt $currVer) {
-            Write-Host "A newer stable version of Python ($LatestVersion) is available."
-            if (Ask-YesNo "Do you want to update to the latest stable Python ($LatestVersion)?" -DefaultYes $true) {
-                $ShouldInstall = $true
-            } else {
-                Write-Host "Keeping existing Python version."
-            }
+            Write-Host "  A newer Python ($LatestVersion) is available (you have $InstalledVersion)."
+            $ShouldInstall = Ask-YesNo "  Update to Python $LatestVersion?" $true
         } else {
-            Write-Host "Python is up-to-date (version $InstalledVersion)."
+            Write-Host "  Python $InstalledVersion is up-to-date. OK" -ForegroundColor Green
         }
     } catch {
-        Write-Host "Could not compare versions. Existing: $InstalledVersion, Latest: $LatestVersion"
-        if (Ask-YesNo "Do you want to install/update Python to version $LatestVersion?" -DefaultYes $false) {
-            $ShouldInstall = $true
-        }
+        Write-Host "  Could not compare versions — keeping existing Python."
     }
-} else {
-    Write-Host "No Python installation detected on your system."
-    $ShouldInstall = $true
 }
 
 $PythonDir = "$BaseDir\python"
-$PythonExe = $null
-$PythonWExe = $null
 
 if ($ShouldInstall) {
-    Write-Host "`n[1/5] Downloading Portable Python $LatestVersion..."
+    Write-Host "  Downloading portable Python $LatestVersion..." -ForegroundColor Yellow
     $DownloadUrl = "https://www.python.org/ftp/python/$LatestVersion/python-$LatestVersion-embed-amd64.zip"
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile "python.zip"
-    
-    Write-Host "Extracting Python..."
-    if (Test-Path $PythonDir) {
-        Write-Host "Cleaning up old Python directory..."
-        Remove-Item -Path $PythonDir -Recurse -Force -ErrorAction SilentlyContinue
+    try {
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile "$BaseDir\python.zip" -UseBasicParsing
+    } catch {
+        Write-Host "  ERROR: Download failed. Check your internet connection." -ForegroundColor Red
+        Write-Host "  $_" -ForegroundColor Red
+        Read-Host "Press Enter to exit"; exit 1
     }
-    New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
-    Expand-Archive -Path "python.zip" -DestinationPath $PythonDir -Force
-    Remove-Item "python.zip"
 
-    Write-Host "Configuring Python environment..."
+    if (Test-Path $PythonDir) { Remove-Item $PythonDir -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
+    Expand-Archive -Path "$BaseDir\python.zip" -DestinationPath $PythonDir -Force
+    Remove-Item "$BaseDir\python.zip" -ErrorAction SilentlyContinue
+
+    # Enable site-packages (required for pip to work in embed layout)
     $PthFile = Get-ChildItem -Path $PythonDir -Filter "*._pth" | Select-Object -First 1
     if ($PthFile) {
         (Get-Content $PthFile.FullName) -replace '#import site', 'import site' | Set-Content $PthFile.FullName
     }
 
-    Write-Host "Installing pip..."
-    Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile "get-pip.py"
-    & "$PythonDir\python.exe" get-pip.py --index-url https://pypi.org/simple/
-    Remove-Item "get-pip.py"
-    
-    $PythonExe = "$PythonDir\python.exe"
-    $PythonWExe = "$PythonDir\pythonw.exe"
-} else {
-    Write-Host "`n[1/5] Using existing Python installation."
-    $PythonExe = $InstalledPythonExe
-    $SelectedPythonDir = Split-Path $PythonExe
-    $PythonWExe = Join-Path $SelectedPythonDir "pythonw.exe"
-    if (-not (Test-Path $PythonWExe)) {
-        $PythonWExe = $PythonExe
-    }
-}
-
-# Ensure pip is installed for the selected Python
-try {
-    & $PythonExe -m pip --version >$null 2>&1
-    $HasPip = ($LastExitCode -eq 0)
-} catch {
-    $HasPip = $false
-}
-
-if (-not $HasPip) {
-    Write-Host "pip is not installed for this Python. Attempting to install pip..."
+    Write-Host "  Installing pip..."
     try {
-        Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile "get-pip.py"
-        & $PythonExe get-pip.py --index-url https://pypi.org/simple/
-        Remove-Item "get-pip.py"
+        Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile "$BaseDir\get-pip.py" -UseBasicParsing
+        & "$PythonDir\python.exe" "$BaseDir\get-pip.py" --index-url https://pypi.org/simple/
+        Remove-Item "$BaseDir\get-pip.py" -ErrorAction SilentlyContinue
     } catch {
-        Write-Host "Warning: Failed to install pip automatically. You may need to install it manually."
+        Write-Host "  WARNING: pip install failed: $_" -ForegroundColor Yellow
+    }
+
+    $PythonExe = "$PythonDir\python.exe"
+    $UsingPortable = $true
+    Write-Host "  Portable Python installed OK." -ForegroundColor Green
+}
+
+# Make sure pip is available
+try {
+    $null = & $PythonExe -m pip --version 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "pip not found" }
+} catch {
+    Write-Host "  pip not found — attempting bootstrap..." -ForegroundColor Yellow
+    try {
+        Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile "$BaseDir\get-pip.py" -UseBasicParsing
+        & $PythonExe "$BaseDir\get-pip.py" --index-url https://pypi.org/simple/
+        Remove-Item "$BaseDir\get-pip.py" -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host "  WARNING: Could not install pip automatically." -ForegroundColor Yellow
     }
 }
 
-# 2. Install Python Dependencies
-Write-Host "`n[2/5] Checking Required Libraries..."
-$MissingLibs = @()
-$OutdatedLibs = @()
+# ── Step 2: Install Python dependencies ──────────────────────────────────────
+Write-Host ""
+Write-Host "[2/5] Installing Python dependencies..." -ForegroundColor Yellow
+
 $RequiredLibs = @("playwright", "fastapi", "uvicorn", "aiosqlite", "pydantic", "jinja2", "python-multipart")
 
+# Get installed packages
+$MissingLibs  = @()
+$OutdatedLibs = @()
 try {
-    # Get list of installed packages
     $InstalledJson = & $PythonExe -m pip list --format json 2>&1
-    if ($LastExitCode -eq 0 -and -not [string]::IsNullOrEmpty($InstalledJson)) {
-        $Installed = @(ConvertFrom-Json $InstalledJson)
-        $InstalledNames = @()
-        if ($Installed) {
-            $InstalledNames = $Installed | ForEach-Object { $_.name.ToLower() }
-        }
-        
+    if ($LASTEXITCODE -eq 0) {
+        $Installed      = ConvertFrom-Json ($InstalledJson -join "")
+        $InstalledNames = $Installed | ForEach-Object { $_.name.ToLower() }
         foreach ($lib in $RequiredLibs) {
-            # Map libraries to their import names if different, but here we check pip package names
-            if ($InstalledNames -notcontains $lib.ToLower()) {
-                $MissingLibs += $lib
-            }
+            if ($InstalledNames -notcontains $lib.ToLower()) { $MissingLibs += $lib }
         }
-        
-        # If nothing is missing, check if any are outdated
         if ($MissingLibs.Count -eq 0) {
-            $OutdatedJson = & $PythonExe -m pip list --outdated --format json 2>&1
-            if ($LastExitCode -eq 0 -and -not [string]::IsNullOrEmpty($OutdatedJson)) {
-                $Outdated = @(ConvertFrom-Json $OutdatedJson)
-                if ($Outdated) {
-                    foreach ($pkg in $Outdated) {
-                        if ($RequiredLibs -contains $pkg.name.ToLower() -or $RequiredLibs -contains $pkg.name) {
-                            $OutdatedLibs += $pkg
-                        }
-                    }
+            $OutJson = & $PythonExe -m pip list --outdated --format json 2>&1
+            if ($LASTEXITCODE -eq 0 -and $OutJson) {
+                $Outdated = ConvertFrom-Json ($OutJson -join "")
+                foreach ($pkg in $Outdated) {
+                    if ($RequiredLibs -contains $pkg.name.ToLower()) { $OutdatedLibs += $pkg }
                 }
             }
         }
-    } else {
-        $MissingLibs = $RequiredLibs
-    }
-} catch {
-    $MissingLibs = $RequiredLibs
-}
+    } else { $MissingLibs = $RequiredLibs }
+} catch { $MissingLibs = $RequiredLibs }
 
 $ShouldInstallLibs = $false
-
 if ($MissingLibs.Count -gt 0) {
-    Write-Host "Missing required libraries: $($MissingLibs -join ', ')"
-    Write-Host "Automatically installing missing libraries..."
+    Write-Host "  Missing: $($MissingLibs -join ', ')" -ForegroundColor Yellow
     $ShouldInstallLibs = $true
 } elseif ($OutdatedLibs.Count -gt 0) {
-    Write-Host "The following required libraries have newer versions available:"
+    Write-Host "  Outdated packages:" -ForegroundColor Yellow
     foreach ($lib in $OutdatedLibs) {
-        Write-Host " - $($lib.name) (installed: $($lib.version), latest: $($lib.latest_version))"
+        Write-Host "    - $($lib.name) ($($lib.version) → $($lib.latest_version))"
     }
-    if (Ask-YesNo "Do you want to update all of these libraries?" -DefaultYes $true) {
-        $ShouldInstallLibs = $true
-    } else {
-        Write-Host "Continuing with current versions."
-    }
+    $ShouldInstallLibs = Ask-YesNo "  Update them?" $true
 } else {
-    Write-Host "All library dependencies are installed and up-to-date."
+    Write-Host "  All dependencies OK." -ForegroundColor Green
 }
 
 if ($ShouldInstallLibs) {
-    Write-Host "Installing/Updating Required Libraries..."
+    Write-Host "  Running pip install..." -ForegroundColor Yellow
     & $PythonExe -m pip install -r "$BaseDir\requirements.txt" --index-url https://pypi.org/simple/
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERROR: pip install failed." -ForegroundColor Red
+        Read-Host "Press Enter to exit"; exit 1
+    }
+    Write-Host "  Dependencies installed OK." -ForegroundColor Green
 }
 
-# 3. Install Playwright Browsers
-Write-Host "`n[3/5] Checking Playwright Browsers..."
+# ── Step 3: Playwright browsers ──────────────────────────────────────────────
+Write-Host ""
+Write-Host "[3/5] Checking Playwright browsers..." -ForegroundColor Yellow
+
 $BrowsersDir = "$BaseDir\playwright_browsers"
-if (-Not (Test-Path $BrowsersDir)) {
-    New-Item -ItemType Directory -Force -Path $BrowsersDir | Out-Null
-}
+if (-not (Test-Path $BrowsersDir)) { New-Item -ItemType Directory -Force -Path $BrowsersDir | Out-Null }
 
-$HasChromium = $false
-$ChromiumFolders = Get-ChildItem -Path $BrowsersDir -Filter "chromium-*" -Directory
-if ($ChromiumFolders) {
-    $HasChromium = $true
-}
+$HasChromium = (Get-ChildItem -Path $BrowsersDir -Filter "chromium-*" -Directory -ErrorAction SilentlyContinue).Count -gt 0
 
 $ShouldInstallChromium = $true
 if ($HasChromium) {
-    Write-Host "Playwright Chromium browser is already installed."
-    # If we just updated libraries, we should probably check if Chromium needs update,
-    # but we can ask the user if they want to check for updates or reinstall Playwright Chromium.
-    if (-not (Ask-YesNo "Do you want to check for updates or reinstall Playwright Chromium browser?" -DefaultYes $false)) {
-        $ShouldInstallChromium = $false
-        Write-Host "Skipping Playwright Chromium browser installation/update."
-    }
+    Write-Host "  Playwright Chromium already installed." -ForegroundColor Green
+    $ShouldInstallChromium = Ask-YesNo "  Re-check/update Playwright Chromium?" $false
 }
 
 if ($ShouldInstallChromium) {
-    Write-Host "Installing/Updating Playwright Browsers (This may take a minute)..."
+    Write-Host "  Installing Playwright Chromium (may take a minute)..." -ForegroundColor Yellow
+    # IMPORTANT: set env var so playwright knows where to put / find browsers
     $env:PLAYWRIGHT_BROWSERS_PATH = $BrowsersDir
     & $PythonExe -m playwright install chromium
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WARNING: Playwright browser install returned non-zero. Check output above." -ForegroundColor Yellow
+    } else {
+        Write-Host "  Playwright Chromium installed OK." -ForegroundColor Green
+    }
 }
 
-# 4. Create Desktop Shortcut
-Write-Host "`n[4/5] Creating Desktop Shortcut..."
-$WshShell = New-Object -ComObject WScript.Shell
+# Persist PLAYWRIGHT_BROWSERS_PATH to User environment so the shortcut finds browsers
+# without needing it set in the shell session
+[System.Environment]::SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", $BrowsersDir, "User")
+Write-Host "  PLAYWRIGHT_BROWSERS_PATH saved to user environment variables." -ForegroundColor Green
+
+# ── Step 4: Desktop shortcut ─────────────────────────────────────────────────
+Write-Host ""
+Write-Host "[4/5] Creating Desktop shortcut..." -ForegroundColor Yellow
+
 $DesktopPath = [System.Environment]::GetFolderPath('Desktop')
-$Shortcut = $WshShell.CreateShortcut("$DesktopPath\Automation Platform.lnk")
-$Shortcut.TargetPath = $PythonWExe
-$Shortcut.Arguments = "`"$BaseDir\main.py`""
+$ShortcutPath = "$DesktopPath\Automation Platform.lnk"
+
+# Decide launcher:
+# - Portable python: use pythonw.exe if it exists, else python.exe via run.bat (shows errors)
+# - System python: use run.bat so errors are visible; pythonw.exe may not exist
+#
+# We always use run.bat as the shortcut target — it checks python, shows errors clearly,
+# and uses the plain python.exe so a console briefly appears then closes once the
+# browser UI opens. This is far more reliable than hunting for pythonw.exe.
+
+$RunBat = "$BaseDir\run.bat"
+
+# Update run.bat to use the correct python executable (portable or system)
+$PythonInvoke = if ($UsingPortable) { "`"$PythonDir\python.exe`"" } else { "python" }
+$RunBatContent = @"
+@echo off
+REM ====================================
+REM Automation Platform Launcher
+REM (Auto-generated by Setup.bat)
+REM ====================================
+title Automation Platform - Starting...
+color 0F
+
+echo.
+echo ================================================
+echo    Automation Platform
+echo ================================================
+echo.
+
+REM Set Playwright browser path so it works without env setup
+set PLAYWRIGHT_BROWSERS_PATH=$BrowsersDir
+
+REM Check main.py exists
+if not exist "%~dp0main.py" (
+    echo [ERROR] main.py not found!
+    pause
+    exit /b 1
+)
+
+echo Starting application...
+$PythonInvoke "%~dp0main.py"
+
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Application stopped with an error. See above.
+    pause
+)
+exit /b 0
+"@
+$RunBatContent | Set-Content -Path $RunBat -Encoding ASCII
+Write-Host "  run.bat updated with correct Python path."
+
+# Create the desktop shortcut pointing at run.bat
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+$Shortcut.TargetPath      = $RunBat
 $Shortcut.WorkingDirectory = $BaseDir
 if (Test-Path "$BaseDir\app_icon.ico") {
     $Shortcut.IconLocation = "$BaseDir\app_icon.ico"
 }
-$Shortcut.Description = "Automation Platform Web App"
+$Shortcut.Description = "Automation Platform"
 $Shortcut.Save()
 
-# 5. Launch Application
-Write-Host "`n[5/5] Launching the Application..."
-Start-Process -FilePath $PythonWExe -ArgumentList "`"$BaseDir\main.py`"" -WorkingDirectory $BaseDir
+if (Test-Path $ShortcutPath) {
+    Write-Host "  Shortcut created: $ShortcutPath" -ForegroundColor Green
+} else {
+    Write-Host "  WARNING: Shortcut file not found after save. Try running as Administrator." -ForegroundColor Yellow
+}
 
-Write-Host "`nInstallation Complete! The app is starting in the background."
-Write-Host "Your browser will automatically open the dashboard shortly."
-Start-Sleep -Seconds 3
+# ── Step 5: Launch the application ───────────────────────────────────────────
+Write-Host ""
+Write-Host "[5/5] Launching the application..." -ForegroundColor Yellow
+
+$env:PLAYWRIGHT_BROWSERS_PATH = $BrowsersDir
+Start-Process -FilePath $RunBat -WorkingDirectory $BaseDir
+
+Write-Host ""
+Write-Host "==========================================" -ForegroundColor Green
+Write-Host "  Setup complete! App is starting..."      -ForegroundColor Green
+Write-Host "  Your browser will open the dashboard."   -ForegroundColor Green
+Write-Host "  Desktop shortcut: Automation Platform"   -ForegroundColor Green
+Write-Host "==========================================" -ForegroundColor Green
+Write-Host ""
+Start-Sleep -Seconds 2

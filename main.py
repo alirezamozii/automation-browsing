@@ -37,7 +37,7 @@ from config import API_HOST, API_PORT
 from browser import BrowserController
 from core import EventBus, WorkflowEngine
 from workflows import WorkflowRegistry
-from storage import db_manager, migration_manager, save_log
+from storage import migration_manager, save_log
 from api import router, WebSocketManager, websocket_endpoint
 
 logger = logging.getLogger("automation_platform.main")

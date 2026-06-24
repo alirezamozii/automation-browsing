@@ -8,7 +8,7 @@
 
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Coroutine
 
 from core.state_machine import WorkflowState
