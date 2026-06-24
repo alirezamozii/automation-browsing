@@ -7,7 +7,7 @@
 <div class="space-y-6" x-data="{ activeTab: 'state_machine' }">
     
     <!-- Dev Tabs (Monochromatic Notion style) -->
-    <div class="border-b border-gray-150 dark:border-zinc-800/80">
+    <div class="border-b border-gray-100 dark:border-zinc-800/80">
         <nav class="-mb-px flex space-x-6 rtl:space-x-reverse" aria-label="Tabs">
             <button @click="activeTab = 'state_machine'" 
                     :class="activeTab === 'state_machine' ? 'border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100 font-semibold' : 'border-transparent text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'" 
@@ -35,7 +35,7 @@
                 <button @click="location.reload()" class="btn btn-outline text-[11px] py-1 px-3">به‌روزرسانی کل صفحه</button>
             </div>
             
-            <div class="bg-zinc-50 dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800/80 rounded p-4 font-mono text-[11px] text-zinc-700 dark:text-zinc-300 overflow-x-auto" dir="ltr">
+            <div class="bg-zinc-50 dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/80 rounded p-4 font-mono text-[11px] text-zinc-700 dark:text-zinc-300 overflow-x-auto" dir="ltr">
 <pre x-text="JSON.stringify({
     engineState: engineState,
     engineStateText: engineStateText,

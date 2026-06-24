@@ -59,23 +59,79 @@ class AutomationWebSocket {
         const store = Alpine.store('globalStore');
         if (!store) return;
         
+        // Map engine states to simplified UI states
+        const stateMap = {
+            'idle': 'IDLE',
+            'starting': 'RUNNING',
+            'login': 'RUNNING',
+            'navigating': 'RUNNING',
+            'searching': 'RUNNING',
+            'open_form': 'RUNNING',
+            'fill_form': 'RUNNING',
+            'saving': 'RUNNING',
+            'verifying': 'RUNNING',
+            'done': 'IDLE',
+            'error': 'ERROR',
+            'paused': 'PAUSED',
+        };
+        
+        // Map engine states to Persian text
+        const stateTextMap = {
+            'idle': 'آماده',
+            'starting': 'در حال شروع...',
+            'login': 'ورود به سیستم',
+            'navigating': 'ناوبری',
+            'searching': 'جستجو',
+            'open_form': 'باز کردن فرم',
+            'fill_form': 'پر کردن فرم',
+            'saving': 'ذخیره‌سازی',
+            'verifying': 'تأیید',
+            'done': 'تکمیل شد',
+            'error': 'خطا',
+            'paused': 'متوقف',
+        };
+        
         switch (message.type) {
-            case 'state_changed':
-                store.engineState = message.data.state;
-                store.engineStateText = message.data.state_text || message.data.state;
+            case 'state_changed': {
+                const rawState = (message.data.state || '').toLowerCase();
+                store.engineState = stateMap[rawState] || 'IDLE';
+                store.engineStateText = stateTextMap[rawState] || message.data.state_text || message.data.state || 'نامشخص';
+                if (message.data.workflow_name) {
+                    store.currentWorkflow = message.data.workflow_name;
+                }
                 if (message.data.workflow) {
                     store.currentWorkflow = message.data.workflow;
                 }
                 break;
+            }
                 
             case 'step_progress':
-                store.currentStepIndex = message.data.step_index;
-                store.totalSteps = message.data.total_steps;
+                if (message.data.step_index !== undefined) {
+                    store.currentStepIndex = message.data.step_index;
+                }
+                if (message.data.total_steps !== undefined) {
+                    store.totalSteps = message.data.total_steps;
+                }
                 break;
                 
-            case 'log_entry':
-                window.dispatchEvent(new CustomEvent('new-log', { detail: message.data }));
+            case 'log_entry': {
+                const logData = message.data;
+                
+                // Extract step progress from log messages
+                if (logData.message) {
+                    // Update step progress from step_started/step_completed events
+                    if (logData.step_index !== undefined) {
+                        store.currentStepIndex = logData.step_index;
+                    }
+                    if (logData.total_steps !== undefined) {
+                        store.totalSteps = logData.total_steps;
+                    }
+                }
+                
+                // Dispatch for live logs in dashboard
+                window.dispatchEvent(new CustomEvent('new-log', { detail: logData }));
                 break;
+            }
                 
             case 'error':
                 store.showToast(message.data.message || 'خطای غیرمنتظره رخ داد', 'error');

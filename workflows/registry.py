@@ -11,12 +11,132 @@ import importlib
 import inspect
 import logging
 import pkgutil
+import sys
+import asyncio
 from pathlib import Path
 from typing import Any, Type
 
-from workflows.base import BaseWorkflow
+from workflows.base import BaseWorkflow, WorkflowStep
+from core.state_machine import WorkflowState
 
 logger = logging.getLogger("automation_platform.workflows.registry")
+
+
+class ScriptTemplateWorkflow(BaseWorkflow):
+    """
+    گردش کار پویا برای اجرای اسکریپت‌های قالب (Python, JS, TS, Java)
+    """
+    file_path: Path = None
+
+    def __init__(self) -> None:
+        super().__init__()
+        if not self.file_path:
+            raise ValueError("file_path class attribute must be set")
+            
+        self._name = f"template_{self.file_path.stem}"
+        self._description = f"اجرای اسکریپت {self.file_path.name}"
+        self._steps = [
+            WorkflowStep(
+                name="run_script",
+                state=WorkflowState.NAVIGATING,
+                action=self._step_run_script,
+                retry_count=1,
+            )
+        ]
+
+    async def execute(
+        self,
+        browser: Any,
+        state: WorkflowState,
+        data: dict[str, Any],
+    ) -> None:
+        await self._step_run_script(browser, data)
+
+    async def _step_run_script(self, browser: Any, data: dict[str, Any]) -> None:
+        suffix = self.file_path.suffix.lower()
+        
+        # تعیین دستور اجرا بر اساس پسوند فایل
+        if suffix == ".py":
+            cmd = [sys.executable, str(self.file_path)]
+        elif suffix == ".js":
+            cmd = ["node", str(self.file_path)]
+        elif suffix in (".ts", ".tsx"):
+            # اجرای فایل‌های TypeScript با npx tsx به صورت زنده و بدون نیاز به کانفیگ
+            cmd = ["npx", "tsx", str(self.file_path)]
+        elif suffix == ".java":
+            cmd = ["java", str(self.file_path)]
+        else:
+            raise ValueError(f"پسوند فایل {suffix} پشتیبانی نمی‌شود")
+
+        logger.info("در حال اجرای دستور: %s", " ".join(cmd))
+        
+        # ارسال لاگ شروع اجرا
+        if hasattr(browser, "event_bus") and browser.event_bus:
+            await browser.event_bus.emit("action_logged", {
+                "workflow": self.name,
+                "state": "navigating",
+                "step_name": "run_script",
+                "status": "info",
+                "message": f"شروع اجرای اسکریپت {self.file_path.name}...",
+            })
+
+        # اجرای اسکریپت در یک پروسه جداگانه و ضبط لاگ‌ها
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        async def read_stream(stream, is_stderr=False):
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                text = line.decode('utf-8', errors='replace').strip()
+                if text:
+                    log_status = "warning" if is_stderr else "info"
+                    
+                    # استخراج مسیر تصویر (Screenshot) از خروجی لاگ اسکریپت
+                    screenshot_path = None
+                    if "[SCREENSHOT]" in text:
+                        parts = text.split("[SCREENSHOT]")
+                        screenshot_path = parts[1].strip()
+                        text = parts[0].strip() or "تصویر صفحه ثبت شد"
+                    
+                    # ارسال فوری لاگ خروجی اسکریپت به EventBus جهت نمایش در داشبورد
+                    if hasattr(browser, "event_bus") and browser.event_bus:
+                        log_data = {
+                            "workflow": self.name,
+                            "state": "navigating",
+                            "step_name": "run_script",
+                            "status": log_status,
+                            "message": text,
+                        }
+                        if screenshot_path:
+                            log_data["screenshot"] = screenshot_path
+                            
+                        await browser.event_bus.emit("action_logged", log_data)
+                    logger.info(f"[{self.file_path.name}] {text}")
+
+        # خواندن همزمان خروجی‌های استاندارد و خطا
+        await asyncio.gather(
+            read_stream(process.stdout, is_stderr=False),
+            read_stream(process.stderr, is_stderr=True),
+        )
+
+        await process.wait()
+        
+        if process.returncode != 0:
+            raise RuntimeError(f"اسکریپت {self.file_path.name} با کد خروج {process.returncode} خاتمه یافت")
+            
+        if hasattr(browser, "event_bus") and browser.event_bus:
+            await browser.event_bus.emit("action_logged", {
+                "workflow": self.name,
+                "state": "navigating",
+                "step_name": "run_script",
+                "status": "success",
+                "message": f"اسکریپت {self.file_path.name} با موفقیت اجرا شد",
+            })
 
 
 class WorkflowRegistry:
@@ -100,7 +220,7 @@ class WorkflowRegistry:
 
     def auto_discover(self) -> int:
         """
-        کشف خودکار گردش‌کارها از پوشه workflows
+        کشف خودکار گردش‌کارها از پوشه workflows و همچنین پوشه قالب‌های اسکریپت
         """
         import sys
         
@@ -115,9 +235,10 @@ class WorkflowRegistry:
 
         logger.info("شروع کشف خودکار از: %s", workflows_dir)
 
+        # ۱. بارگذاری کلاس‌های گردش کار استاندارد پایتون
         for finder, module_name, is_pkg in pkgutil.iter_modules([str(workflows_dir)]):
-            # نادیده گرفتن __init__, base, registry
-            if module_name in ("base", "registry", "__init__"):
+            # نادیده گرفتن __init__, base, registry, workflow_template
+            if module_name in ("base", "registry", "__init__", "workflow_template"):
                 continue
 
             full_module_name = f"workflows.{module_name}"
@@ -133,6 +254,7 @@ class WorkflowRegistry:
                     inspect.isclass(attr)
                     and issubclass(attr, BaseWorkflow)
                     and attr is not BaseWorkflow
+                    and attr is not ScriptTemplateWorkflow
                     and not inspect.isabstract(attr)
                 ):
                     try:
@@ -145,8 +267,37 @@ class WorkflowRegistry:
                             full_module_name,
                         )
 
+        # ۲. بارگذاری اسکریپت‌های متفرقه از پوشه workflow_template
+        template_dir = workflows_dir / "workflow_template"
+        if template_dir.exists() and template_dir.is_dir():
+            for file_path in template_dir.iterdir():
+                if file_path.is_file() and file_path.name != ".gitkeep":
+                    suffix = file_path.suffix.lower()
+                    if suffix in (".py", ".js", ".ts", ".tsx", ".java"):
+                        try:
+                            # ساخت یک کلاس پویا برای ثبت این اسکریپت
+                            class_name = f"TemplateWorkflow_{file_path.stem}_{suffix[1:]}"
+                            dynamic_class = type(
+                                class_name,
+                                (ScriptTemplateWorkflow,),
+                                {
+                                    "file_path": file_path,
+                                }
+                            )
+                            self.register(dynamic_class)
+                            count += 1
+                        except Exception:
+                            logger.exception("خطا در بارگذاری قالب اسکریپت '%s'", file_path.name)
+
         logger.info("%d گردش کار کشف و ثبت شد", count)
         return count
+
+    def __contains__(self, name: str) -> bool:
+        return name in self._workflows
+
+    def __len__(self) -> int:
+        return len(self._workflows)
+
 
     def __contains__(self, name: str) -> bool:
         return name in self._workflows

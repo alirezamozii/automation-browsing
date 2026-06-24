@@ -52,14 +52,8 @@ class WebSocketManager:
             f"اتصال WebSocket جدید برقرار شد. تعداد اتصالات فعال: {len(self.active_connections)}"
         )
 
-        # ارسال پیام خوش‌آمدگویی
-        await self.send_personal(websocket, {
-            "type": "notification",
-            "data": {
-                "message": "اتصال WebSocket برقرار شد",
-                "timestamp": datetime.now().isoformat(),
-            },
-        })
+        # اتصال بدون ارسال نوتیفیکیشن مزاحم به کاربر
+        pass
 
     def disconnect(self, websocket: WebSocket) -> None:
         """

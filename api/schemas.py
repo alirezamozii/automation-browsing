@@ -64,6 +64,21 @@ class DeveloperState(BaseModel):
     )
 
 
+class SessionEntry(BaseModel):
+    """یک رکورد جلسه اجرا"""
+    session_id: str = Field(..., description="شناسه جلسه")
+    workflow_name: str = Field(..., description="نام ورک‌فلو")
+    started_at: str = Field(..., description="زمان شروع")
+    ended_at: str = Field(..., description="زمان پایان")
+    final_status: str = Field(..., description="وضعیت نهایی جلسه")
+
+
+class SessionsResponse(BaseModel):
+    """پاسخ لیست جلسات"""
+    sessions: list[SessionEntry] = Field(default_factory=list, description="لیست جلسات")
+    total: int = Field(..., description="تعداد کل جلسات")
+
+
 class ApiResponse(BaseModel):
     """پاسخ استاندارد API برای عملیات‌ها"""
     success: bool = Field(..., description="آیا عملیات موفق بود")

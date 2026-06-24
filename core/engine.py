@@ -47,6 +47,8 @@ class WorkflowEngine:
         self.state_machine = StateMachine()
         self.event_bus = event_bus or EventBus()
         self.scheduler = scheduler or StepScheduler()
+        if self.browser:
+            self.browser.event_bus = self.event_bus
 
         self._current_workflow: Any | None = None
         self._current_step_index: int = 0
@@ -80,6 +82,27 @@ class WorkflowEngine:
         self._input_data = input_data or {}
         self._current_step_index = 0
         self._is_running = True
+        
+        # تولید شناسه یکتای نشست (Session ID) بر اساس زمان
+        self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # تعریف کالبک گرفتن اسکرین‌شات اکشن‌ها
+        if self.browser:
+            async def on_browser_action(screenshot_path):
+                # ارسال رویداد برای ذخیره‌سازی لاگ اکشن مرورگر
+                state = self.state_machine.current_state.value
+                steps = self._current_workflow.steps if self._current_workflow else []
+                step = steps[self._current_step_index].name if steps and self._current_step_index < len(steps) else "action"
+                await self.event_bus.emit("action_logged", {
+                    "workflow": self._current_workflow.name if self._current_workflow else "system",
+                    "state": state,
+                    "step_name": step,
+                    "status": "info",
+                    "message": "عملیات کلیک/تایپ/ناوبری با موفقیت انجام شد",
+                    "screenshot": str(screenshot_path),
+                    "session_id": self._session_id,
+                })
+            self.browser.on_action = on_browser_action
 
         self.state_machine = StateMachine()  # بازنشانی حالت
         self.state_machine.transition(WorkflowState.STARTING)
@@ -167,8 +190,15 @@ class WorkflowEngine:
         if workflow is None:
             return
 
+        steps = workflow.steps
+
         try:
-            steps = workflow.steps
+            # اطمینان از باز بودن مرورگر
+            if self.browser and not self.browser.is_launched:
+                logger.info("اجرای خودکار متد launch مرورگر قبل از شروع گردش کار")
+                headless_option = self._input_data.get("headless", False)
+                await self.browser.launch(headless=headless_option)
+
             for idx, step in enumerate(steps):
                 if not self._is_running:
                     break
@@ -223,6 +253,8 @@ class WorkflowEngine:
             await self._on_error(exc, step=steps[self._current_step_index] if steps else None)
         finally:
             self._is_running = False
+            if self.browser:
+                self.browser.on_action = None
 
     # ──────────────────────────────────────────────
     #  اجرای تک‌گام با تلاش مجدد
@@ -320,8 +352,12 @@ class WorkflowEngine:
                 screenshot_path = str(SCREENSHOTS_DIR / filename)
                 # browser.screenshot() توسط عامل دیگر پیاده‌سازی می‌شود
                 if hasattr(self.browser, "screenshot"):
-                    await self.browser.screenshot(screenshot_path)
-                    logger.info("اسکرین‌شات خطا ذخیره شد: %s", screenshot_path)
+                    saved_path = await self.browser.screenshot(screenshot_path)
+                    if saved_path:
+                        logger.info("اسکرین‌شات خطا ذخیره شد: %s", screenshot_path)
+                    else:
+                        logger.warning("ذخیره اسکرین‌شات ناموفق بود")
+                        screenshot_path = None
             except Exception:
                 logger.warning("ذخیره اسکرین‌شات ناموفق بود")
                 screenshot_path = None

@@ -226,6 +226,7 @@ async def startup_event():
         workflow = event_data.get("workflow") or engine.get_status().get("workflow_name") or "system"
         state = engine.state_machine.current_state.value
         step = event_data.get("step_name") or "system"
+        session_id = event_data.get("session_id") or getattr(engine, "_session_id", "system")
         
         status = "info"
         if event_type == "error":
@@ -250,6 +251,9 @@ async def startup_event():
             message = "اجرای فرآیند از سر گرفته شد"
         elif event_type == "workflow_done":
             message = "اجرای فرآیند با موفقیت پایان یافت"
+        elif event_type == "action_logged":
+            message = event_data.get("message", "عملیات مرورگر انجام شد")
+            status = event_data.get("status", "info")
 
         # الف. ذخیره در دیتابیس SQLite
         try:
@@ -260,12 +264,17 @@ async def startup_event():
                 status=status,
                 message=message,
                 screenshot_path=event_data.get("screenshot"),
-                error_traceback=event_data.get("error_traceback")
+                error_traceback=event_data.get("error_traceback"),
+                session_id=session_id
             )
         except Exception as db_err:
             logger.error(f"خطا در ذخیره لاگ رویداد: {db_err}")
             log_id = 0
             
+        # استخراج اطلاعات پیشرفت گام‌ها
+        step_index = event_data.get("step_index")
+        total_steps = event_data.get("total_steps")
+
         # ب. ارسال به وب‌ساکت
         await ws_manager.broadcast_log_entry({
             "id": log_id,
@@ -274,8 +283,12 @@ async def startup_event():
             "step_name": step,
             "status": status,
             "message": message,
+            "level": status.upper() if status != "success" else "INFO",
             "screenshot_path": event_data.get("screenshot"),
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "step_index": step_index,
+            "total_steps": total_steps,
+            "session_id": session_id,
         })
         
         # پ. ارسال سیگنال وضعیت به وب‌ساکت
@@ -284,9 +297,28 @@ async def startup_event():
             workflow_name=workflow,
             step_name=step,
         )
+        
+        # ت. ارسال پیشرفت مرحله
+        if event_type == "step_started":
+            idx = event_data.get("step_index", 0)
+            total = event_data.get("total_steps", 1)
+            await ws_manager.broadcast_step_progress(
+                step_name=step,
+                progress=(idx / max(total, 1)) * 100,
+                step_index=idx,
+                total_steps=total
+            )
+        elif event_type == "workflow_done":
+            total = event_data.get("steps_completed", 1)
+            await ws_manager.broadcast_step_progress(
+                step_name=step,
+                progress=100.0,
+                step_index=total,
+                total_steps=total
+            )
 
     # اتصال شنونده برای تمام رویدادها
-    for ev in ["state_changed", "step_started", "step_completed", "error", "paused", "resumed", "workflow_done"]:
+    for ev in ["state_changed", "step_started", "step_completed", "error", "paused", "resumed", "workflow_done", "action_logged"]:
         event_bus.on(ev, global_event_listener)
         
     logger.info("تمام لایه‌های سیستم به یکدیگر متصل شدند")

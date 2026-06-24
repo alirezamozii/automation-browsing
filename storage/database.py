@@ -66,6 +66,7 @@ class DatabaseManager:
                     message TEXT NOT NULL,
                     screenshot_path TEXT NULL,
                     error_traceback TEXT NULL,
+                    session_id TEXT NULL,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 );
             """)

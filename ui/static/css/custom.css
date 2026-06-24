@@ -25,18 +25,18 @@
   }
 
   .dark {
-    /* Dark Mode Variables (Notion dark charcoal theme) */
-    --bg-color: #191919;
-    --sidebar-bg: #202020;
-    --card-bg: #191919;
-    --text-color: #E3E3E2;
-    --text-muted: #9B9B9B;
-    --accent-color: #F4F4F5;
-    --accent-text-color: #09090B;
-    --accent-hover: #D4D4D8;
-    --border-color: rgba(255, 255, 255, 0.095);
-    --hover-bg: rgba(255, 255, 255, 0.055);
-    --hover-bg-active: rgba(255, 255, 255, 0.085);
+    /* Dark Mode Variables (Pure Black & White, minimal borders) */
+    --bg-color: #000000;
+    --sidebar-bg: #000000;
+    --card-bg: #000000;
+    --text-color: #FFFFFF;
+    --text-muted: #A1A1AA;
+    --accent-color: #FFFFFF;
+    --accent-text-color: #000000;
+    --accent-hover: #E4E4E7;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --hover-bg: rgba(255, 255, 255, 0.06);
+    --hover-bg-active: rgba(255, 255, 255, 0.1);
   }
 
   body {
@@ -48,12 +48,12 @@
 }
 
 @layer components {
-  /* Flat/Minimal Cards */
+  /* Flat/Minimal Cards (Notion Style) */
   .card {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
     transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
@@ -64,8 +64,8 @@
 
   /* Minimal Buttons */
   .btn {
-    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed;
-    border-radius: 0.25rem;
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: 0.375rem;
   }
 
   .btn-primary {
@@ -131,43 +131,42 @@
     border: 1px solid var(--border-color);
   }
 
-  /* Layout-safe Floating Toasts (Bottom Center) */
+  /* Layout-safe Floating Toasts */
   .toast-container {
     position: fixed;
-    bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 2rem;
+    right: 2rem;
     z-index: 9999;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
     pointer-events: none;
-    align-items: center;
+    align-items: flex-end;
   }
 
   .toast {
     pointer-events: auto;
     display: flex;
     align-items: center;
-    padding: 0.6rem 0.9rem;
+    padding: 0.75rem 1rem;
     width: max-content;
     max-w: 24rem;
-    font-size: 0.75rem;
-    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
     background-color: var(--sidebar-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    animation: slideInUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Progress Bar */
   .progress-bar-container {
-    @apply w-full bg-gray-100 rounded-full h-1.5 dark:bg-gray-800 overflow-hidden;
+    @apply w-full bg-gray-100 rounded-full h-2 dark:bg-zinc-800 overflow-hidden;
   }
 
   .progress-bar {
-    @apply h-1.5 rounded-full transition-all duration-500 ease-out;
+    @apply h-2 rounded-full transition-all duration-500 ease-out;
     background-color: var(--text-color);
   }
 }

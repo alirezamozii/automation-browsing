@@ -16,6 +16,8 @@ from storage.models import (
     get_logs,
     get_log_by_id,
     get_setting,
+    get_sessions,
+    get_session_count,
     load_state,
     save_log,
     save_setting,
@@ -34,6 +36,8 @@ __all__: list[str] = [
     "get_log_by_id",
     "get_log_count",
     "clear_logs",
+    "get_sessions",
+    "get_session_count",
     # models – workflow state
     "save_state",
     "load_state",

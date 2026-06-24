@@ -67,6 +67,14 @@ async def migration_001_initial_tables(db: aiosqlite.Connection) -> None:
     logger.info("مهاجرت 001: جداول پایه ایجاد شدند.")
 
 
+async def migration_002_add_session_id(db: aiosqlite.Connection) -> None:
+    """
+    مهاجرت 002: اضافه کردن فیلد session_id به جدول execution_logs
+    """
+    await db.execute("ALTER TABLE execution_logs ADD COLUMN session_id TEXT NULL;")
+    logger.info("مهاجرت 002: فیلد session_id اضافه شد.")
+
+
 # ─────────────────────────────────────────────
 #  Migration Registry
 # ─────────────────────────────────────────────
@@ -75,7 +83,7 @@ async def migration_001_initial_tables(db: aiosqlite.Connection) -> None:
 # برای اضافه کردن مهاجرت جدید، یک تاپل (version, name, func) اضافه کنید
 MIGRATIONS: list[tuple[int, str, MigrationFunc]] = [
     (1, "initial_tables", migration_001_initial_tables),
-    # (2, "add_index_on_logs", migration_002_add_index_on_logs),
+    (2, "add_session_id", migration_002_add_session_id),
     # مهاجرت‌های آینده را اینجا اضافه کنید
 ]
 

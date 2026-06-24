@@ -9,7 +9,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 
 from api.schemas import (
@@ -21,6 +21,8 @@ from api.schemas import (
     WorkflowInfo,
     WorkflowStartRequest,
     WorkflowStatus,
+    SessionEntry,
+    SessionsResponse,
 )
 from storage import (
     get_logs,
@@ -29,6 +31,8 @@ from storage import (
     clear_logs,
     get_all_settings,
     update_settings,
+    get_sessions,
+    get_session_count,
 )
 
 logger = logging.getLogger(__name__)
@@ -337,4 +341,124 @@ async def get_developer_state_route(request: Request) -> DeveloperState:
         logger.error(f"خطا در دریافت وضعیت توسعه‌دهنده: {e}")
         raise HTTPException(
             status_code=500, detail=f"خطا در دریافت وضعیت: {str(e)}"
+        )
+
+
+# ─── جلسات اجرا (Sessions) ──────────────────────────────────────────
+
+@router.get("/sessions", response_model=SessionsResponse)
+async def get_sessions_route(
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+) -> SessionsResponse:
+    """دریافت لیست جلسات اجرا شده به همراه اطلاعات کلی"""
+    try:
+        sessions_data = await get_sessions(limit=limit, offset=offset)
+        total = await get_session_count()
+        
+        sessions = [
+            SessionEntry(
+                session_id=s["session_id"],
+                workflow_name=s["workflow_name"],
+                started_at=s["started_at"],
+                ended_at=s["ended_at"],
+                final_status=s["final_status"],
+            )
+            for s in sessions_data
+        ]
+        return SessionsResponse(sessions=sessions, total=total)
+    except Exception as e:
+        logger.error(f"خطا در دریافت لیست جلسات: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"خطا در دریافت لیست جلسات: {str(e)}"
+        )
+
+
+@router.get("/session/{session_id}/logs", response_model=LogsResponse)
+async def get_session_logs_route(
+    request: Request,
+    session_id: str,
+    limit: int = 200,
+    offset: int = 0,
+) -> LogsResponse:
+    """دریافت تمام لاگ‌های مربوط به یک جلسه اجرا"""
+    try:
+        result_logs = await get_logs(
+            session_id=session_id,
+            limit=limit,
+            offset=offset,
+        )
+        total = await get_log_count(session_id=session_id)
+        
+        logs = [
+            LogEntry(
+                id=log["id"],
+                workflow_name=log["workflow_name"],
+                state=log["state"],
+                step_name=log["step_name"],
+                status=log["status"],
+                message=log["message"],
+                screenshot_path=log.get("screenshot_path"),
+                created_at=log["created_at"],
+            )
+            for log in result_logs
+        ]
+        
+        return LogsResponse(logs=logs, total=total)
+    except Exception as e:
+        logger.error(f"خطا در دریافت لاگ‌های جلسه: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"خطا در دریافت لاگ‌های جلسه: {str(e)}"
+        )
+
+
+@router.post("/workflow/upload", response_model=ApiResponse)
+async def upload_workflow_route(
+    request: Request,
+    file: UploadFile = File(...),
+) -> ApiResponse:
+    """آپلود اسکریپت گردش کار جدید و کشف خودکار آن"""
+    try:
+        filename = file.filename
+        if not filename:
+            raise HTTPException(status_code=400, detail="نام فایل نامعتبر است")
+            
+        ext = Path(filename).suffix.lower()
+        if ext not in (".py", ".js", ".ts", ".tsx", ".java"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"فرمت فایل {ext} پشتیبانی نمی‌شود. فرمت‌های مجاز: .py, .js, .ts, .tsx, .java"
+            )
+            
+        import sys
+        if getattr(sys, 'frozen', False):
+            workflows_dir = Path(sys._MEIPASS) / "workflows"
+        else:
+            workflows_dir = Path(__file__).resolve().parent.parent / "workflows"
+            
+        template_dir = workflows_dir / "workflow_template"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        
+        dest_path = template_dir / filename
+        
+        contents = await file.read()
+        with open(dest_path, "wb") as f:
+            f.write(contents)
+            
+        # کشف خودکار مجدد برای اضافه کردن ورک‌فلو جدید
+        registry = request.app.state.registry
+        registry.auto_discover()
+        
+        return ApiResponse(
+            success=True,
+            message=f"اسکریپت {filename} با موفقیت بارگذاری و ثبت شد",
+            data={"filename": filename}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"خطا در آپلود اسکریپت: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"خطا در آپلود اسکریپت: {str(e)}"
         )

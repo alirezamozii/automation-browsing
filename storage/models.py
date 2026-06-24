@@ -27,6 +27,7 @@ async def save_log(
     message: str,
     screenshot_path: str | None = None,
     error_traceback: str | None = None,
+    session_id: str | None = None,
 ) -> int:
     """
     ذخیره یک رکورد لاگ اجرا در دیتابیس.
@@ -39,6 +40,7 @@ async def save_log(
         message: پیام لاگ.
         screenshot_path: مسیر اسکرین‌شات (اختیاری).
         error_traceback: متن خطای کامل (اختیاری).
+        session_id: شناسه جلسه اجرا (اختیاری).
 
     Returns:
         شناسه رکورد ایجاد شده.
@@ -47,20 +49,21 @@ async def save_log(
         cursor = await db.execute(
             """
             INSERT INTO execution_logs
-                (workflow_name, state, step_name, status, message, screenshot_path, error_traceback)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (workflow_name, state, step_name, status, message, screenshot_path, error_traceback, session_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (workflow, state, step, status, message, screenshot_path, error_traceback),
+            (workflow, state, step, status, message, screenshot_path, error_traceback, session_id),
         )
         await db.commit()
         row_id: int = cursor.lastrowid  # type: ignore[assignment]
-        logger.debug("لاگ ذخیره شد: id=%d, workflow=%s, step=%s", row_id, workflow, step)
+        logger.debug("لاگ ذخیره شد: id=%d, workflow=%s, step=%s, session_id=%s", row_id, workflow, step, session_id)
         return row_id
 
 
 async def get_logs(
     workflow: str | None = None,
     status: str | None = None,
+    session_id: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[dict[str, Any]]:
@@ -70,6 +73,7 @@ async def get_logs(
     Args:
         workflow: فیلتر بر اساس نام ورک‌فلو (اختیاری).
         status: فیلتر بر اساس وضعیت (اختیاری).
+        session_id: فیلتر بر اساس شناسه جلسه اجرا (اختیاری).
         limit: حداکثر تعداد نتایج.
         offset: تعداد رکوردهای رد شده از ابتدا.
 
@@ -85,8 +89,11 @@ async def get_logs(
     if status is not None:
         query += " AND status = ?"
         params.append(status)
+    if session_id is not None:
+        query += " AND session_id = ?"
+        params.append(session_id)
 
-    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+    query += " ORDER BY id ASC LIMIT ? OFFSET ?"
     params.extend([limit, offset])
 
     async with db_manager.get_connection() as db:
@@ -98,6 +105,7 @@ async def get_logs(
 async def get_log_count(
     workflow: str | None = None,
     status: str | None = None,
+    session_id: str | None = None,
 ) -> int:
     """
     دریافت تعداد لاگ‌ها با فیلترهای اختیاری.
@@ -105,6 +113,7 @@ async def get_log_count(
     Args:
         workflow: فیلتر بر اساس نام ورک‌فلو (اختیاری).
         status: فیلتر بر اساس وضعیت (اختیاری).
+        session_id: فیلتر بر اساس شناسه جلسه (اختیاری).
 
     Returns:
         تعداد رکوردهای مطابق.
@@ -118,11 +127,51 @@ async def get_log_count(
     if status is not None:
         query += " AND status = ?"
         params.append(status)
+    if session_id is not None:
+        query += " AND session_id = ?"
+        params.append(session_id)
 
     async with db_manager.get_connection() as db:
         cursor = await db.execute(query, params)
         row = await cursor.fetchone()
         return row["cnt"] if row else 0  # type: ignore[index]
+
+
+async def get_sessions(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+    """
+    دریافت لیست جلسات (sessions) اجرا شده به همراه نام ورک‌فلو، زمان و وضعیت نهایی.
+    """
+    query = """
+        SELECT 
+            session_id,
+            workflow_name,
+            MIN(created_at) as started_at,
+            MAX(created_at) as ended_at,
+            CASE 
+                WHEN SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) > 0 THEN 'error'
+                ELSE 'success'
+            END as final_status
+        FROM execution_logs
+        WHERE session_id IS NOT NULL AND session_id != 'system'
+        GROUP BY session_id
+        ORDER BY started_at DESC
+        LIMIT ? OFFSET ?
+    """
+    async with db_manager.get_connection() as db:
+        cursor = await db.execute(query, [limit, offset])
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
+async def get_session_count() -> int:
+    """
+    دریافت تعداد کل جلسات اجرا شده.
+    """
+    query = "SELECT COUNT(DISTINCT session_id) as cnt FROM execution_logs WHERE session_id IS NOT NULL AND session_id != 'system'"
+    async with db_manager.get_connection() as db:
+        cursor = await db.execute(query)
+        row = await cursor.fetchone()
+        return row["cnt"] if row else 0
 
 
 async def clear_logs(workflow: str | None = None) -> int:

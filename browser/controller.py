@@ -64,6 +64,7 @@ class BrowserController:
         # تنظیمات
         self._default_timeout = DEFAULT_TIMEOUT
         self._screenshots_dir = SCREENSHOTS_DIR
+        self.on_action = None
 
     # ────────────────────────────── Properties ──────────────────────────────
 
@@ -85,7 +86,7 @@ class BrowserController:
     @property
     def is_launched(self) -> bool:
         """آیا مرورگر باز است؟"""
-        return self._browser is not None and self._browser.is_connected()
+        return self._context is not None
 
     @property
     def is_paused(self) -> bool:
@@ -94,12 +95,15 @@ class BrowserController:
 
     # ────────────────────────────── Lifecycle ──────────────────────────────
 
-    async def launch(self) -> Page:
+    async def launch(self, headless: bool = False) -> Page:
         """
         باز کردن مرورگر Chrome واقعی با پروفایل ثابت.
         
         از Chrome نصب‌شده روی سیستم استفاده می‌کند (channel='chrome')
         و پروفایل ثابت برای حفظ session بین اجراها.
+        
+        قبل از لانچ، پروسه‌های Chrome قدیمی مرتبط با این پروفایل
+        و فایل‌های قفل پاکسازی می‌شوند.
         
         Returns:
             آبجکت Page آماده استفاده
@@ -113,6 +117,9 @@ class BrowserController:
 
         logger.info("🚀 در حال باز کردن مرورگر Chrome...")
         
+        # پاکسازی پروسه‌های قدیمی و lock file قبل از لانچ
+        self._profile_manager.cleanup_for_launch()
+        
         profile_path = self._profile_manager.get_profile_path()
         
         self._playwright = await async_playwright().start()
@@ -121,8 +128,8 @@ class BrowserController:
         self._context = await self._playwright.chromium.launch_persistent_context(
             user_data_dir=str(profile_path),
             channel="chrome",
-            headless=False,
-            viewport={"width": 1366, "height": 768},
+            headless=headless,
+            no_viewport=True,  # بدون محدودیت viewport — اجازه می‌دهد --start-maximized کار کند
             locale="fa-IR",
             timezone_id="Asia/Tehran",
             args=[
@@ -130,9 +137,15 @@ class BrowserController:
                 "--disable-infobars",
                 "--no-first-run",
                 "--no-default-browser-check",
+                "--start-maximized",
+                "--disable-session-crashed-bubble",
+                "--hide-crash-restore-bubble",
             ],
             ignore_default_args=["--enable-automation"],
         )
+        
+        # انتظار کوتاه تا Chrome کاملاً آماده شود
+        await asyncio.sleep(1)
         
         # استفاده از صفحه اول یا ساخت صفحه جدید
         if self._context.pages:
@@ -207,6 +220,17 @@ class BrowserController:
             logger.debug("⏳ منتظر Resume...")
             await self._pause_event.wait()
 
+    async def _after_action(self) -> None:
+        """گرفتن اسکرین‌شات بعد از هر عملیات موفق و اجرای کالبک"""
+        if self.on_action:
+            try:
+                # گرفتن اسکرین‌شات با مسیر خودکار
+                screenshot_path = await self.screenshot()
+                # فراخوانی کالبک ثبت لاگ
+                await self.on_action(screenshot_path)
+            except Exception as e:
+                logger.debug(f"خطا در گرفتن اسکرین‌شات پس از عملیات: {e}")
+
     # ────────────────────────────── Browser Actions ──────────────────────────────
 
     async def navigate(self, url: str, wait_until: str = "domcontentloaded") -> None:
@@ -224,6 +248,7 @@ class BrowserController:
         try:
             await self._page.goto(url, wait_until=wait_until)
             logger.info(f"✅ صفحه لود شد: {url}")
+            await self._after_action()
         except Exception as e:
             logger.error(f"❌ خطا در ناوبری به {url}: {e}")
             raise
@@ -247,6 +272,7 @@ class BrowserController:
             await element.wait_for(state="visible", timeout=timeout)
             await element.click(timeout=timeout)
             logger.debug(f"✅ کلیک موفق: {locator}")
+            await self._after_action()
         except Exception as e:
             logger.error(f"❌ خطا در کلیک روی '{locator}': {e}")
             raise
@@ -273,6 +299,7 @@ class BrowserController:
             await element.wait_for(state="visible", timeout=timeout)
             await element.fill(value, timeout=timeout)
             logger.debug(f"✅ فیلد پر شد: {locator}")
+            await self._after_action()
         except Exception as e:
             logger.error(f"❌ خطا در پر کردن '{locator}': {e}")
             raise
@@ -299,6 +326,7 @@ class BrowserController:
             await element.click(timeout=timeout)
             await element.type(text, delay=delay)
             logger.debug(f"✅ تایپ موفق: {locator}")
+            await self._after_action()
         except Exception as e:
             logger.error(f"❌ خطا در تایپ در '{locator}': {e}")
             raise
@@ -322,6 +350,7 @@ class BrowserController:
                 await element.press(key)
             else:
                 await self._page.keyboard.press(key)
+            await self._after_action()
         except Exception as e:
             logger.error(f"❌ خطا در فشار کلید '{key}': {e}")
             raise
@@ -463,7 +492,7 @@ class BrowserController:
 
     # ────────────────────────────── Screenshot ──────────────────────────────
 
-    async def screenshot(self, path: str | Path | None = None, full_page: bool = False) -> Path:
+    async def screenshot(self, path: str | Path | None = None, full_page: bool = False) -> Path | None:
         """
         گرفتن اسکرین‌شات از صفحه فعلی.
         
@@ -472,7 +501,7 @@ class BrowserController:
             full_page: آیا تمام صفحه باشد یا فقط viewport
         
         Returns:
-            مسیر فایل اسکرین‌شات
+            مسیر فایل اسکرین‌شات یا None در صورت بروز خطا
         """
         self._ensure_page()
         
@@ -486,12 +515,13 @@ class BrowserController:
             path.parent.mkdir(parents=True, exist_ok=True)
         
         try:
-            await self._page.screenshot(path=str(path), full_page=full_page)
+            # استفاده از تایم‌اوت ۵ ثانیه‌ای برای جلوگیری از مسدود شدن طولانی توسط فونت‌ها
+            await self._page.screenshot(path=str(path), full_page=full_page, timeout=5000)
             logger.info(f"📸 اسکرین‌شات ذخیره شد: {path}")
             return path
         except Exception as e:
-            logger.error(f"❌ خطا در گرفتن اسکرین‌شات: {e}")
-            raise
+            logger.warning(f"❌ خطا در گرفتن اسکرین‌شات: {e}")
+            return None
 
     # ────────────────────────────── Download ──────────────────────────────
 
