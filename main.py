@@ -287,6 +287,7 @@ async def startup_event():
         # استخراج اطلاعات پیشرفت گام‌ها
         step_index = event_data.get("step_index")
         total_steps = event_data.get("total_steps")
+        progress_pct = event_data.get("progress_pct")
 
         # ب. ارسال به وب‌ساکت
         await ws_manager.broadcast_log_entry({
@@ -311,23 +312,36 @@ async def startup_event():
             step_name=step,
         )
         
-        # ت. ارسال پیشرفت مرحله
-        if event_type == "step_started":
-            idx = event_data.get("step_index", 0)
-            total = event_data.get("total_steps", 1)
+        # ت. ارسال پیشرفت مرحله — unified for started/completed/done
+        step_index = event_data.get("step_index")
+        total_steps = event_data.get("total_steps")
+        progress_pct = event_data.get("progress_pct")
+
+        if event_type == "step_started" and step_index is not None and total_steps:
+            # step_index steps are done, currently starting step (step_index+1)
+            pct = progress_pct if progress_pct is not None else round((step_index / total_steps) * 100, 1)
             await ws_manager.broadcast_step_progress(
                 step_name=step,
-                progress=(idx / max(total, 1)) * 100,
-                step_index=idx,
-                total_steps=total
+                progress=pct,
+                step_index=step_index,
+                total_steps=total_steps,
+            )
+        elif event_type == "step_completed" and step_index is not None and total_steps:
+            # (step_index+1) steps are now fully done
+            pct = progress_pct if progress_pct is not None else round(((step_index + 1) / total_steps) * 100, 1)
+            await ws_manager.broadcast_step_progress(
+                step_name=step,
+                progress=pct,
+                step_index=step_index + 1,
+                total_steps=total_steps,
             )
         elif event_type == "workflow_done":
-            total = event_data.get("steps_completed", 1)
+            completed = event_data.get("steps_completed", total_steps or 1)
             await ws_manager.broadcast_step_progress(
                 step_name=step,
                 progress=100.0,
-                step_index=total,
-                total_steps=total
+                step_index=completed,
+                total_steps=completed,
             )
 
     # اتصال شنونده برای تمام رویدادها

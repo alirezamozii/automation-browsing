@@ -232,6 +232,8 @@ class WorkflowEngine:
                     "step_name": step.name,
                     "step_index": idx,
                     "total_steps": len(steps),
+                    # progress = steps completed so far out of total (idx out of N means idx done)
+                    "progress_pct": round((idx / len(steps)) * 100, 1),
                 })
 
                 # تغییر حالت ماشین به حالت مرتبط با این گام
@@ -251,6 +253,9 @@ class WorkflowEngine:
                 await self.event_bus.emit("step_completed", {
                     "step_name": step.name,
                     "step_index": idx,
+                    "total_steps": len(steps),
+                    # after completing step idx, (idx+1) steps are done
+                    "progress_pct": round(((idx + 1) / len(steps)) * 100, 1),
                 })
 
                 # تأخیر بین گام‌ها

@@ -142,7 +142,9 @@ class BrowserController:
             channel="chrome",
             headless=headless,
             user_agent=user_agent,
-            no_viewport=True,  # بدون محدودیت viewport — اجازه می‌دهد --start-maximized کار کند
+            # In headless mode we need an explicit viewport for screenshots to work
+            no_viewport=not headless,
+            viewport={"width": 1280, "height": 900} if headless else None,
             locale="fa-IR",
             timezone_id="Asia/Tehran",
             args=[
@@ -153,6 +155,7 @@ class BrowserController:
                 "--start-maximized",
                 "--disable-session-crashed-bubble",
                 "--hide-crash-restore-bubble",
+                "--window-size=1280,900",
             ],
             ignore_default_args=["--enable-automation"],
         )
@@ -237,10 +240,10 @@ class BrowserController:
         """گرفتن اسکرین‌شات بعد از هر عملیات موفق و اجرای کالبک"""
         if self.on_action:
             try:
-                # گرفتن اسکرین‌شات با مسیر خودکار
                 screenshot_path = await self.screenshot()
-                # فراخوانی کالبک ثبت لاگ
-                await self.on_action(screenshot_path)
+                # Only call back if we actually got a valid path
+                if screenshot_path is not None:
+                    await self.on_action(screenshot_path)
             except Exception as e:
                 logger.debug(f"خطا در گرفتن اسکرین‌شات پس از عملیات: {e}")
 

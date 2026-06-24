@@ -32,8 +32,6 @@ Thumbs.db
 .vscode/
 
 # Project specific
-app_icon.ico
-
 # Developer-only publish tool — must NOT be distributed to end users
 publish.py
 update_extract/
