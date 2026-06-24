@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 گردش کار جستجوی تصویر در بینگ (Advanced Smart Template)
 
@@ -71,6 +71,19 @@ class BingImageSearchWorkflow(BaseWorkflow):
                 retry_count=2,
             ),
         ]
+
+    async def execute(
+        self,
+        browser: Any,
+        state: WorkflowState,
+        data: dict[str, Any],
+    ) -> None:
+        """اجرای مستقیم گردش کار به صورت ترتیبی"""
+        logger.info("شروع اجرای کامل گردش کار بینگ '%s'", self._name)
+        for step in self._steps:
+            logger.info("اجرای گام بینگ: '%s'", step.name)
+            await step.action(browser, data)
+        logger.info("گردش کار بینگ '%s' تکمیل شد", self._name)
 
     async def _sync_active_page_async(self, browser: Any) -> None:
         """

@@ -353,6 +353,8 @@ async def shutdown_event():
 # ─── اجرای برنامه ────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     import socket
     
     port = API_PORT
