@@ -161,6 +161,15 @@ class WebSocketManager:
             },
         })
 
+    async def broadcast_json(self, message: dict) -> None:
+        """
+        ارسال یک پیام JSON دلخواه به تمام کلاینت‌ها (alias for broadcast)
+
+        Args:
+            message: دیکشنری پیام
+        """
+        await self.broadcast(message)
+
     async def broadcast_error(self, error_message: str, **kwargs) -> None:
         """
         ارسال پیام خطا به همه کلاینت‌ها

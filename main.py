@@ -343,8 +343,33 @@ async def startup_event():
         url = f"http://{API_HOST}:{actual_port}"
         logger.info(f"باز کردن پنل مدیریت در مرورگر پیش‌فرض سیستم: {url}")
         webbrowser.open(url)
-        
+
     asyncio.create_task(open_browser())
+
+    # ۷. بررسی خودکار آپدیت در پس‌زمینه — فقط در صورت وجود نسخه جدید به UI اطلاع داده می‌شود
+    async def background_update_check():
+        # صبر می‌کنیم تا UI کاملاً بارگذاری شود
+        await asyncio.sleep(5.0)
+        try:
+            from core.updater import check_for_updates
+            result = await check_for_updates()
+            if result.get("update_available"):
+                logger.info(f"آپدیت جدید یافت شد: {result.get('latest_version')}")
+                await ws_manager.broadcast_json({
+                    "type": "update_available",
+                    "data": {
+                        "latest_version": result.get("latest_version"),
+                        "local_version":  result.get("local_version"),
+                        "message":        result.get("message"),
+                    },
+                })
+            else:
+                # نسخه به‌روز است — هیچ اطلاعیه‌ای ارسال نمی‌شود
+                logger.info(f"بررسی آپدیت: {result.get('message')}")
+        except Exception as e:
+            logger.warning(f"بررسی آپدیت در پس‌زمینه با خطا مواجه شد: {e}")
+
+    asyncio.create_task(background_update_check())
 
 
 @app.on_event("shutdown")
