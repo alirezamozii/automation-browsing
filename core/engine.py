@@ -247,9 +247,28 @@ class WorkflowEngine:
                         "new_state": step.state.value,
                     })
 
+                # بررسی شرط skip_if قبل از اجرا
+                if step.skip_if is not None:
+                    try:
+                        should_skip = await step.skip_if(self.browser, self._input_data)
+                        if should_skip:
+                            logger.info("⏭ گام '%s' skip شد (skip_if=True)", step.name)
+                            await self.event_bus.emit("step_completed", {
+                                "step_name": step.name,
+                                "step_index": idx,
+                                "total_steps": len(steps),
+                                "progress_pct": round(((idx + 1) / len(steps)) * 100, 1),
+                                "skipped": True,
+                            })
+                            if idx < len(steps) - 1:
+                                await self.scheduler.wait_between_steps()
+                            idx += 1
+                            continue
+                    except Exception as skip_err:
+                        logger.warning("خطا در skip_if گام '%s': %s", step.name, skip_err)
+
                 # اجرای گام با منطق تلاش مجدد
                 await self._execute_step(step)
-
                 await self.event_bus.emit("step_completed", {
                     "step_name": step.name,
                     "step_index": idx,
@@ -292,67 +311,31 @@ class WorkflowEngine:
     # ──────────────────────────────────────────────
 
     async def _execute_step(self, step: Any) -> None:
-        """
-        اجرای یک گام از گردش کار با پشتیبانی از تلاش مجدد
-
-        Args:
-            step: شیء WorkflowStep
-        """
         max_retries = step.retry_count if hasattr(step, "retry_count") else MAX_RETRIES
         await self._retry_step(step, max_retries=max_retries)
 
     async def _retry_step(self, step: Any, max_retries: int = MAX_RETRIES) -> None:
-        """
-        اجرای یک گام با منطق تلاش مجدد
-
-        Args:
-            step: شیء WorkflowStep
-            max_retries: حداکثر تعداد تلاش مجدد
-
-        Raises:
-            Exception: اگر تمام تلاش‌ها ناموفق باشند
-        """
         last_error: Exception | None = None
+        # Use step-level timeout override if set
+        step_timeout = getattr(step, "timeout_override", None)
 
         for attempt in range(1, max_retries + 1):
             try:
-                logger.debug(
-                    "اجرای گام '%s' — تلاش %d/%d",
-                    step.name,
-                    attempt,
-                    max_retries,
-                )
+                logger.debug("اجرای گام '%s' — تلاش %d/%d", step.name, attempt, max_retries)
                 await self.scheduler.run_with_timeout(
-                    step.action(self.browser, self._input_data)
+                    step.action(self.browser, self._input_data),
+                    timeout=step_timeout,
                 )
-                return  # موفقیت‌آمیز
+                return
             except asyncio.TimeoutError:
-                last_error = asyncio.TimeoutError(
-                    f"گام '{step.name}' از محدودیت زمانی فراتر رفت"
-                )
-                logger.warning(
-                    "تایم‌اوت گام '%s' — تلاش %d/%d",
-                    step.name,
-                    attempt,
-                    max_retries,
-                )
+                last_error = asyncio.TimeoutError(f"گام '{step.name}' timeout شد")
+                logger.warning("تایم‌اوت گام '%s' — تلاش %d/%d", step.name, attempt, max_retries)
             except Exception as exc:
                 last_error = exc
-                logger.warning(
-                    "خطا در گام '%s' — تلاش %d/%d: %s",
-                    step.name,
-                    attempt,
-                    max_retries,
-                    str(exc),
-                )
-
-            # تأخیر نمایی بین تلاش‌ها
+                logger.warning("خطا در گام '%s' — تلاش %d/%d: %s", step.name, attempt, max_retries, exc)
             if attempt < max_retries:
-                backoff = 2 ** (attempt - 1)
-                logger.debug("انتظار %d ثانیه قبل از تلاش مجدد", backoff)
-                await asyncio.sleep(backoff)
+                await asyncio.sleep(2 ** (attempt - 1))
 
-        # تمام تلاش‌ها ناموفق بود
         if last_error is not None:
             raise last_error
 
