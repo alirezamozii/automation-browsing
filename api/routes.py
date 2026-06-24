@@ -532,14 +532,11 @@ async def update_system_route(request: Request) -> ApiResponse:
 
         ws_manager = request.app.state.ws_manager
 
-        async def progress_callback(percent, speed, downloaded, total, status="downloading"):
+        async def progress_callback(percent: int, status_msg: str) -> None:
             await ws_manager.broadcast_json({
                 "type": "update_progress",
                 "percent": percent,
-                "speed": speed,
-                "downloaded": downloaded,
-                "total": total,
-                "status": status
+                "status": status_msg,
             })
 
         success, message = await update_from_github(progress_callback=progress_callback)

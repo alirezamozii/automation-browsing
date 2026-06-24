@@ -275,7 +275,8 @@ class WorkflowEngine:
             logger.info("گردش کار لغو شد")
             raise
         except Exception as exc:
-            await self._on_error(exc, step=steps[self._current_step_index] if steps else None)
+            current_step = steps[self._current_step_index] if steps and self._current_step_index < len(steps) else None
+            await self._on_error(exc, step=current_step)
         finally:
             self._is_running = False
             if self.browser:

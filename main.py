@@ -30,7 +30,7 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from jinja2 import TemplateNotFound
+from jinja2 import TemplateNotFound  # noqa: F401 — kept for potential template error handling
 from fastapi.templating import Jinja2Templates
 
 from config import API_HOST, API_PORT

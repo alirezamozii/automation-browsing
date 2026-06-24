@@ -1,6 +1,3 @@
-import os
-import sys
-import shutil
 import urllib.request
 import urllib.error
 import logging
@@ -21,7 +18,9 @@ GITHUB_RAW_FILE    = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_
 
 # ── Files / folders we are allowed to overwrite ──────────────────────────────
 # Everything else (user data) is NEVER touched.
-ALLOWED_DIRS  = {"api", "browser", "core", "locators", "ui", "workflows", "storage"}
+ALLOWED_DIRS  = {"api", "browser", "core", "locators", "ui", "storage"}
+# workflows/ is allowed BUT workflow_template/ inside it is personal — protected below
+ALLOWED_WORKFLOW_SUBDIRS_BLOCKED = {"workflow_template", "archive"}
 ALLOWED_FILES = {"main.py", "config.py", "requirements.txt", "version.json"}
 
 # ── User-data paths that must NEVER be deleted or replaced ───────────────────
@@ -238,7 +237,12 @@ def _is_allowed_path(rel_path: str) -> bool:
     # Top-level file (e.g. "main.py")
     if len(parts) == 1:
         return parts[0] in ALLOWED_FILES
-    # File inside an allowed directory
+    # workflows/workflow_template/** and workflows/archive/** → personal user files, never touch
+    if parts[0] == "workflows":
+        if len(parts) >= 2 and parts[1] in ALLOWED_WORKFLOW_SUBDIRS_BLOCKED:
+            return False
+        return True
+    # File inside any other allowed directory
     return parts[0] in ALLOWED_DIRS
 
 

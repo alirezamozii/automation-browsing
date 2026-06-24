@@ -326,10 +326,3 @@ class WorkflowRegistry:
 
     def __len__(self) -> int:
         return len(self._workflows)
-
-
-    def __contains__(self, name: str) -> bool:
-        return name in self._workflows
-
-    def __len__(self) -> int:
-        return len(self._workflows)
