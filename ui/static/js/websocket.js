@@ -145,6 +145,14 @@ class AutomationWebSocket {
                 }
                 break;
                 
+            case 'update_progress':
+                if (store.updateModal) {
+                    store.updateModal.percent = message.data.percent || message.percent || 0;
+                    store.updateModal.speed = message.data.speed || message.speed || '0 MB/s';
+                    store.updateModal.status = message.data.status || message.status || 'downloading';
+                }
+                break;
+                
             case 'heartbeat':
             case 'pong':
                 // Silently ignore heartbeat and pong

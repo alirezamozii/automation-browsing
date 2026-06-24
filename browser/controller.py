@@ -86,7 +86,17 @@ class BrowserController:
     @property
     def is_launched(self) -> bool:
         """آیا مرورگر باز است؟"""
-        return self._context is not None
+        if self._context is None:
+            return False
+        # اگر کاربر همه تب‌ها را ببندد، طول صفحات صفر می‌شود و یعنی مرورگر عملاً بسته است
+        try:
+            if len(self._context.pages) == 0:
+                self._context = None
+                self._page = None
+                return False
+        except Exception:
+            return False
+        return True
 
     @property
     def is_paused(self) -> bool:
@@ -124,11 +134,15 @@ class BrowserController:
         
         self._playwright = await async_playwright().start()
         
+        # تعیین User-Agent طبیعی برای جلوگیری از شناسایی در حالت Headless
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        
         # استفاده از persistent context برای حفظ session
         self._context = await self._playwright.chromium.launch_persistent_context(
             user_data_dir=str(profile_path),
             channel="chrome",
             headless=headless,
+            user_agent=user_agent,
             no_viewport=True,  # بدون محدودیت viewport — اجازه می‌دهد --start-maximized کار کند
             locale="fa-IR",
             timezone_id="Asia/Tehran",
@@ -637,6 +651,16 @@ class BrowserController:
         """بررسی اینکه صفحه‌ای فعال وجود دارد"""
         if self._page is None:
             raise RuntimeError("مرورگر هنوز باز نشده — ابتدا launch() را فراخوانی کنید")
+        
+        # اگر کاربر تب فعلی را ببندد، تب دیگری را انتخاب کن
+        if getattr(self._page, "is_closed", lambda: False)():
+            if self._context and len(self._context.pages) > 0:
+                self._page = self._context.pages[-1]
+                logger.info("صفحه قبلی بسته شده بود، جایگزین شد با آخرین تب باز.")
+            else:
+                self._context = None
+                self._page = None
+                raise RuntimeError("همه تب‌ها بسته شده‌اند. لطفا مرورگر را مجددا اجرا کنید.")
 
     async def _on_new_page(self, page: Page) -> None:
         """هندل کردن باز شدن صفحه جدید (popup, new tab)"""

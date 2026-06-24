@@ -14,6 +14,17 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
+# رفع باگ Uvicorn در حالت noconsole (gui)
+class DummyStream:
+    def write(self, *args, **kwargs): pass
+    def flush(self, *args, **kwargs): pass
+    def isatty(self): return False
+
+if sys.stdout is None:
+    sys.stdout = DummyStream()
+if sys.stderr is None:
+    sys.stderr = DummyStream()
+
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +57,8 @@ app.add_middleware(
 # مسیرهای استاتیک و تمپلیت‌ها با پشتیبانی از دایرکتوری موقت فایل EXE (PyInstaller)
 if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys._MEIPASS)
+    # تنظیم مسیر مرورگرهای Playwright برای حالت باندل شده
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(BASE_DIR / "playwright_browsers")
 else:
     BASE_DIR = Path(__file__).resolve().parent
 
@@ -357,15 +370,11 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     import socket
     
-    port = API_PORT
-    while True:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind((API_HOST, port))
-                break
-            except OSError:
-                logger.info(f"پورت {port} در حال استفاده است. تلاش برای پورت بعدی...")
-                port += 1
+    # گرفتن یک پورت خالی و تصادفی از سیستم عامل
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((API_HOST, 0))
+        port = s.getsockname()[1]
                 
     app.state.port = port
+    logger.info(f"سیستم روی پورت تصادفی {port} راه‌اندازی شد.")
     uvicorn.run(app, host=API_HOST, port=port, reload=False)

@@ -100,6 +100,50 @@ async def get_workflows_route(request: Request) -> list[WorkflowInfo]:
         )
 
 
+@router.post("/workflows/{name}/archive", response_model=ApiResponse)
+async def archive_workflow_route(request: Request, name: str) -> ApiResponse:
+    """بایگانی کردن یک اسکریپت گردش کار"""
+    try:
+        import shutil
+        import sys
+        from pathlib import Path
+        
+        registry = request.app.state.registry
+        try:
+            workflow = registry.get(name)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"ورک‌فلو '{name}' یافت نشد")
+        
+        if not hasattr(workflow, "file_path") or not workflow.file_path:
+            raise HTTPException(status_code=400, detail="فقط اسکریپت‌های آپلود شده قابل بایگانی هستند")
+            
+        if getattr(sys, 'frozen', False):
+            workflows_dir = Path(sys._MEIPASS) / "workflows"
+        else:
+            workflows_dir = Path(__file__).resolve().parent.parent / "workflows"
+            
+        archive_dir = workflows_dir / "archive"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        
+        dest_path = archive_dir / workflow.file_path.name
+        shutil.move(str(workflow.file_path), str(dest_path))
+        
+        if name in registry._workflows:
+            del registry._workflows[name]
+            
+        return ApiResponse(
+            success=True,
+            message=f"اسکریپت '{workflow.file_path.name}' با موفقیت بایگانی شد"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"خطا در بایگانی فرآیند: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"خطا در بایگانی فرآیند: {str(e)}"
+        )
+
+
 @router.post("/workflow/start", response_model=ApiResponse)
 async def start_workflow_route(request: Request, body: WorkflowStartRequest) -> ApiResponse:
     """شروع اجرای یک فرآیند"""
@@ -461,4 +505,57 @@ async def upload_workflow_route(
         logger.error(f"خطا در آپلود اسکریپت: {e}")
         raise HTTPException(
             status_code=500, detail=f"خطا در آپلود اسکریپت: {str(e)}"
+        )
+
+
+# ─── سیستم ──────────────────────────────────────────────────────────
+
+@router.get("/system/check-update")
+async def check_update_route(request: Request) -> dict:
+    """بررسی وجود آپدیت جدید در گیت‌هاب"""
+    try:
+        from core.updater import check_for_updates
+        result = await check_for_updates()
+        return result
+    except Exception as e:
+        logger.error(f"خطا در بررسی آپدیت: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/system/update", response_model=ApiResponse)
+async def update_system_route(request: Request) -> ApiResponse:
+    """آپدیت سورس کدها از گیت‌هاب"""
+    try:
+        from core.updater import update_from_github
+        import asyncio
+        import os
+        import sys
+
+        ws_manager = request.app.state.ws_manager
+
+        async def progress_callback(percent, speed, downloaded, total, status="downloading"):
+            await ws_manager.broadcast_json({
+                "type": "update_progress",
+                "percent": percent,
+                "speed": speed,
+                "downloaded": downloaded,
+                "total": total,
+                "status": status
+            })
+
+        success, message = await update_from_github(progress_callback=progress_callback)
+        
+        if success:
+            # Restart the application gracefully after a short delay
+            async def restart_app():
+                await asyncio.sleep(2.0)
+                os.execv(sys.executable, [sys.executable, *sys.argv])
+                
+            asyncio.create_task(restart_app())
+            return ApiResponse(success=True, message=message)
+        else:
+            raise HTTPException(status_code=500, detail=message)
+    except Exception as e:
+        logger.error(f"خطا در بروزرسانی سیستم: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"خطا در بروزرسانی سیستم: {str(e)}"
         )

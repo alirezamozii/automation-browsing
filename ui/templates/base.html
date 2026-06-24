@@ -116,6 +116,33 @@
         </div>
     </main>
 
+    <!-- Update Modal -->
+    <div x-show="updateModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style="display: none;">
+        <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">آپدیت جدید موجود است</h2>
+            <p class="text-zinc-600 dark:text-zinc-400 text-sm mb-6" x-text="updateModal.message">نسخه جدید برای دانلود آماده است.</p>
+            
+            <div x-show="updateModal.status === 'downloading'" class="mb-4">
+                <div class="flex justify-between text-xs text-zinc-500 mb-1">
+                    <span x-text="updateModal.speed">0 MB/s</span>
+                    <span x-text="updateModal.percent + '%'">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-zinc-800 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" :style="'width: ' + updateModal.percent + '%'"></div>
+                </div>
+            </div>
+            
+            <div x-show="updateModal.status === 'extracting'" class="mb-4">
+                <p class="text-sm text-amber-500 font-bold animate-pulse">در حال نصب و راه‌اندازی مجدد...</p>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-2" x-show="updateModal.status === 'idle'">
+                <button @click="updateModal.show = false" class="px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">بعداً</button>
+                <button @click="startUpdate()" class="px-4 py-2 text-sm bg-black text-white dark:bg-white dark:text-black rounded hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors">دانلود و نصب</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/static/js/app.js"></script>
     <script src="/static/js/websocket.js"></script>

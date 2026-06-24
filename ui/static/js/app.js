@@ -12,12 +12,59 @@ document.addEventListener('alpine:init', () => {
         currentStepIndex: 0,
         totalSteps: 0,
         
+        // Auto-Updater State
+        updateModal: {
+            show: false,
+            message: '',
+            status: 'idle', // idle, downloading, extracting
+            percent: 0,
+            speed: '0 MB/s'
+        },
+        
         init() {
             // Set initial theme
             if (this.theme === 'dark') {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
+            }
+            
+            // Check for updates
+            this.initUpdateCheck();
+        },
+        
+        async initUpdateCheck() {
+            try {
+                const res = await fetch('/api/system/check-update');
+                const data = await res.json();
+                if (data.update_available) {
+                    this.updateModal.message = data.message;
+                    this.updateModal.show = true;
+                }
+            } catch (e) {
+                console.error("Failed to check for updates", e);
+            }
+        },
+        
+        async startUpdate() {
+            this.updateModal.status = 'downloading';
+            this.updateModal.percent = 0;
+            this.updateModal.speed = '0 MB/s';
+            try {
+                const res = await fetch('/api/system/update', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 4000);
+                } else {
+                    this.showToast(data.detail || 'Update failed', 'error');
+                    this.updateModal.show = false;
+                    this.updateModal.status = 'idle';
+                }
+            } catch (e) {
+                this.showToast('خطا در ارتباط با سرور', 'error');
+                this.updateModal.show = false;
+                this.updateModal.status = 'idle';
             }
         },
         

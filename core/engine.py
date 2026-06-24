@@ -139,6 +139,7 @@ class WorkflowEngine:
 
         self.state_machine.resume()
         self.scheduler.resume()
+        self._just_resumed = True
 
         await self.event_bus.emit("resumed", {
             "state": self.state_machine.current_state.value,
@@ -185,7 +186,7 @@ class WorkflowEngine:
     # ──────────────────────────────────────────────
 
     async def _run_workflow(self) -> None:
-        """حلقه اصلی اجرای ترتیبی گام‌های گردش کار."""
+        """حلقه اصلی اجرای ترتیبی گام‌های گردش کار با قابلیت پرش هوشمند."""
         workflow = self._current_workflow
         if workflow is None:
             return
@@ -199,10 +200,34 @@ class WorkflowEngine:
                 headless_option = self._input_data.get("headless", False)
                 await self.browser.launch(headless=headless_option)
 
-            for idx, step in enumerate(steps):
+            idx = 0
+            while idx < len(steps):
                 if not self._is_running:
                     break
 
+                # بررسی هوشمند موقعیت فعلی در صورت تغییر مسیر دستی در زمان توقف
+                if self.browser and hasattr(self.browser, "is_launched") and self.browser.is_launched and hasattr(workflow, "get_current_step_index"):
+                    try:
+                        current_url = await self.browser.get_current_url()
+                        smart_idx = workflow.get_current_step_index(current_url)
+                        
+                        # اگر کاربر سیستم را Resume کرده و عقب‌تر رفته است
+                        if getattr(self, "_just_resumed", False):
+                            if smart_idx != -1 and smart_idx < idx:
+                                logger.info("بازگشت هوشمند به عقب از گام %d به %d پس از ادامه", idx, smart_idx)
+                                idx = smart_idx
+                            self._just_resumed = False
+                            
+                        # پرش به جلو
+                        if smart_idx > idx:
+                            logger.info("پرش هوشمند از گام %d به %d بر اساس URL فعلی", idx, smart_idx)
+                            idx = smart_idx
+                            if idx >= len(steps):
+                                break
+                    except Exception as e:
+                        logger.debug(f"خطا در پرش هوشمند: {e}")
+
+                step = steps[idx]
                 self._current_step_index = idx
 
                 await self.event_bus.emit("step_started", {
@@ -233,6 +258,8 @@ class WorkflowEngine:
                 # تأخیر بین گام‌ها
                 if idx < len(steps) - 1:
                     await self.scheduler.wait_between_steps()
+                
+                idx += 1
 
             # اتمام موفق
             if self._is_running:

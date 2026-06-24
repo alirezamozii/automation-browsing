@@ -65,6 +65,26 @@
                 this.uploadProgress = 0;
             }, 500);
         }
+    },
+    async archiveWorkflow(workflowName) {
+        if (!confirm(`آیا از بایگانی کردن ${workflowName} اطمینان دارید؟`)) return;
+        
+        try {
+            const response = await fetch(`/api/workflows/${workflowName}/archive`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                $store.globalStore.showToast('با موفقیت بایگانی شد!', 'success');
+                const r = await fetch('/api/workflows');
+                this.workflows = await r.json();
+            } else {
+                $store.globalStore.showToast(data.detail || 'خطا در بایگانی', 'error');
+            }
+        } catch (e) {
+            $store.globalStore.showToast('ارتباط با سرور قطع شد', 'error');
+        }
     }
 }" x-init="fetch('/api/workflows').then(r => r.json()).then(data => { workflows = data; loading = false; })">
     
@@ -132,7 +152,13 @@
                         <div class="w-8 h-8 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 flex items-center justify-center shrink-0">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         </div>
-                        <span class="badge badge-success text-[10px] font-normal">آماده اجرا</span>
+                        <div class="flex items-center gap-2">
+                            <!-- دکمه بایگانی (فقط برای نمایش در کارت) -->
+                            <button @click.prevent="archiveWorkflow(wf.name)" title="بایگانی کردن" class="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                            </button>
+                            <span class="badge badge-success text-[10px] font-normal">آماده اجرا</span>
+                        </div>
                     </div>
                     <div>
                         <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100" x-text="wf.name"></h3>

@@ -237,8 +237,8 @@ class WorkflowRegistry:
 
         # ۱. بارگذاری کلاس‌های گردش کار استاندارد پایتون
         for finder, module_name, is_pkg in pkgutil.iter_modules([str(workflows_dir)]):
-            # نادیده گرفتن __init__, base, registry, workflow_template
-            if module_name in ("base", "registry", "__init__", "workflow_template"):
+            # نادیده گرفتن __init__, base, registry, workflow_template, archive
+            if module_name in ("base", "registry", "__init__", "workflow_template", "archive"):
                 continue
 
             full_module_name = f"workflows.{module_name}"
