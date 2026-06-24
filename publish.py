@@ -34,6 +34,13 @@ def run_cmd(cmd):
     print(f"> {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
 
+def is_git_repo():
+    try:
+        res = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+        return res.returncode == 0
+    except Exception:
+        return False
+
 def main():
     commit_msg = sys.argv[1] if len(sys.argv) > 1 else "Auto-update version"
     
@@ -41,6 +48,11 @@ def main():
     new_version = bump_version()
     print(f"[*] نسخه برنامه به {new_version} ارتقا یافت.")
     
+    if not is_git_repo():
+        print("\n⚠️ هشدار: این پوشه یک مخزن گیت (Git repository) نیست.")
+        print("فایل نسخه (version.json) بروزرسانی شد، اما تغییرات در گیت commit یا push نشدند.")
+        return
+        
     try:
         run_cmd(["git", "add", "."])
         run_cmd(["git", "commit", "-m", f"{commit_msg} (v{new_version})"])
