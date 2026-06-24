@@ -16,6 +16,8 @@ document.addEventListener('alpine:init', () => {
         updateModal: {
             show: false,
             message: '',
+            local_version: '',
+            latest_version: '',
             status: 'idle', // idle, downloading, extracting
             percent: 0,
             speed: '0 MB/s'
@@ -39,6 +41,8 @@ document.addEventListener('alpine:init', () => {
                 const data = await res.json();
                 if (data.update_available) {
                     this.updateModal.message = data.message;
+                    this.updateModal.local_version = data.local_version || '1.0.0';
+                    this.updateModal.latest_version = data.latest_version || '1.0.0';
                     this.updateModal.show = true;
                 }
             } catch (e) {

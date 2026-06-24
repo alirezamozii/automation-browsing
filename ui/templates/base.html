@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>پلتفرم اتوماسیون داخلی</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/app_icon.ico">
+    <link rel="icon" type="image/png" href="/static/img/app-icon.png">
+
     <!-- CSS & Fonts -->
     <link rel="stylesheet" href="/static/css/custom.css">
     
@@ -35,8 +39,8 @@
     <aside :class="sidebarOpen ? 'w-72' : 'w-16'" class="flex-shrink-0 bg-[var(--sidebar-bg)] border-l border-gray-100 dark:border-zinc-900 flex flex-col transition-all duration-200 z-20">
         <div class="h-14 flex items-center justify-between px-3.5 border-b border-gray-200/80 dark:border-zinc-800/50">
             <div class="flex items-center gap-2.5 overflow-hidden whitespace-nowrap">
-                <div class="w-7 h-7 rounded bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-bold shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <div class="w-8 h-8 rounded-lg shrink-0 overflow-hidden shadow-sm">
+                    <img src="/static/img/app-icon.png" alt="Icon" class="w-full h-full object-cover">
                 </div>
                 <span x-show="sidebarOpen" x-transition.opacity class="font-semibold text-sm tracking-tight text-zinc-800 dark:text-zinc-200">اتوماسیون</span>
             </div>
@@ -120,7 +124,21 @@
     <div x-show="updateModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style="display: none;">
         <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
             <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">آپدیت جدید موجود است</h2>
-            <p class="text-zinc-600 dark:text-zinc-400 text-sm mb-6" x-text="updateModal.message">نسخه جدید برای دانلود آماده است.</p>
+            <p class="text-zinc-600 dark:text-zinc-400 text-sm mb-4">نسخه جدید پلتفرم برای دانلود آماده است.</p>
+            
+            <div class="flex items-center gap-4 mb-6 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                <div class="flex flex-col">
+                    <span class="text-xs text-zinc-500 mb-1">نسخه فعلی</span>
+                    <span class="font-mono text-sm font-bold text-zinc-700 dark:text-zinc-300" x-text="'v' + updateModal.local_version"></span>
+                </div>
+                <div class="flex-1 flex justify-center text-zinc-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-xs text-zinc-500 mb-1">نسخه جدید</span>
+                    <span class="font-mono text-sm font-bold text-green-600 dark:text-green-400" x-text="'v' + updateModal.latest_version"></span>
+                </div>
+            </div>
             
             <div x-show="updateModal.status === 'downloading'" class="mb-4">
                 <div class="flex justify-between text-xs text-zinc-500 mb-1">
