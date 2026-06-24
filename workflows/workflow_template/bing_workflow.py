@@ -132,7 +132,7 @@ class BingImageSearchWorkflow(BaseWorkflow):
     def __init__(self) -> None:
         super().__init__()
         self._name = "bing_image_search"
-        self._description = "جستجوی هوشمند تصویر در بینگ"
+        self._description = "جستجوی هوشمند تصویر موز در بینگ"
 
         # الگوهای URL برای پرش هوشمند engine هنگام Resume
         self._page_patterns = {
@@ -249,7 +249,7 @@ class BingImageSearchWorkflow(BaseWorkflow):
     async def _step_type_search(self, browser: Any, data: dict[str, Any]) -> None:
         """گام ۲: تایپ و ارسال جستجو."""
         await self._sync_active_page(browser)
-        query = data.get("query", "automation")
+        query = data.get("query", "موز")
         logger.info("جستجو: '%s'", query)
         search_box = "#sb_form_q"
         try:
@@ -292,7 +292,7 @@ class BingImageSearchWorkflow(BaseWorkflow):
             await browser.wait_seconds(1.5)
             await self._sync_active_page(browser)
         else:
-            query = data.get("query", "automation")
+            query = data.get("query", "موز")
             await browser.navigate(f"https://www.bing.com/images/search?q={query}")
             await self._sync_active_page(browser)
 

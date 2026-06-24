@@ -30,7 +30,7 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from jinja2 import TemplateNotFound  # noqa: F401 — kept for potential template error handling
+from jinja2 import TemplateNotFound as _TemplateNotFound  # noqa: F401
 from fastapi.templating import Jinja2Templates
 
 from config import API_HOST, API_PORT
@@ -42,8 +42,19 @@ from api import router, WebSocketManager, websocket_endpoint
 
 logger = logging.getLogger("automation_platform.main")
 
+# Read current version from version.json
+def _read_app_version() -> str:
+    try:
+        import json as _json
+        _vf = Path(__file__).resolve().parent / "version.json"
+        if _vf.exists():
+            return _json.loads(_vf.read_text(encoding="utf-8")).get("version", "1.0.0")
+    except Exception:
+        pass
+    return "1.0.0"
+
 # ایجاد برنامه FastAPI
-app = FastAPI(title="پلتفرم اتوماسیون", version="1.0.0")
+app = FastAPI(title="پلتفرم اتوماسیون", version=_read_app_version())
 
 # تنظیم CORS برای توسعه راحت‌تر
 app.add_middleware(
@@ -284,7 +295,7 @@ async def startup_event():
             logger.error(f"خطا در ذخیره لاگ رویداد: {db_err}")
             log_id = 0
             
-        # استخراج اطلاعات پیشرفت گام‌ها
+        # استخراج اطلاعات پیشرفت گام‌ها (یک بار، برای لاگ و progress)
         step_index = event_data.get("step_index")
         total_steps = event_data.get("total_steps")
         progress_pct = event_data.get("progress_pct")
@@ -313,10 +324,6 @@ async def startup_event():
         )
         
         # ت. ارسال پیشرفت مرحله — unified for started/completed/done
-        step_index = event_data.get("step_index")
-        total_steps = event_data.get("total_steps")
-        progress_pct = event_data.get("progress_pct")
-
         if event_type == "step_started" and step_index is not None and total_steps:
             # step_index steps are done, currently starting step (step_index+1)
             pct = progress_pct if progress_pct is not None else round((step_index / total_steps) * 100, 1)

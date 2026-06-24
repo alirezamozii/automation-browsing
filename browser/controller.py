@@ -33,7 +33,7 @@ from playwright.async_api import (
 )
 
 from browser.profile import ProfileManager
-from config import DEFAULT_TIMEOUT, SCREENSHOTS_DIR
+from config import DEFAULT_TIMEOUT, DOWNLOADS_DIR, SCREENSHOTS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ class BrowserController:
 
         self._default_timeout = DEFAULT_TIMEOUT
         self._screenshots_dir = SCREENSHOTS_DIR
+        self._downloads_dir = DOWNLOADS_DIR
         self.on_action: Callable | None = None
         self.event_bus: Any = None  # injected by WorkflowEngine
 

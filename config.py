@@ -32,6 +32,11 @@ DB_PATH: Path = APP_DIR / "data.db"
 SCREENSHOTS_DIR: Path = APP_DIR / "screenshots"
 
 # ──────────────────────────────────────────────
+#  مسیر ذخیره فایل‌های دانلود شده
+# ──────────────────────────────────────────────
+DOWNLOADS_DIR: Path = APP_DIR / "downloads"
+
+# ──────────────────────────────────────────────
 #  تنظیمات سرور API
 # ──────────────────────────────────────────────
 API_HOST: str = "127.0.0.1"
@@ -47,7 +52,7 @@ LOG_LEVEL: str = "INFO"
 # ──────────────────────────────────────────────
 #  ساخت دایرکتوری‌ها در صورت عدم وجود
 # ──────────────────────────────────────────────
-for _dir in (APP_DIR, BROWSER_PROFILE_DIR, SCREENSHOTS_DIR):
+for _dir in (APP_DIR, BROWSER_PROFILE_DIR, SCREENSHOTS_DIR, DOWNLOADS_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
 # ──────────────────────────────────────────────
