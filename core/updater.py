@@ -1,188 +1,281 @@
 import os
 import sys
-import zipfile
 import shutil
 import urllib.request
+import urllib.error
 import logging
 import asyncio
 from pathlib import Path
-import time
 import json
 
 logger = logging.getLogger("automation_platform.updater")
 
-GITHUB_REPO_URL = "https://github.com/alirezamozii/automation-browsing/archive/refs/heads/main.zip"
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/alirezamozii/automation-browsing/main/version.json"
+GITHUB_OWNER = "alirezamozii"
+GITHUB_REPO  = "automation-browsing"
+GITHUB_BRANCH = "main"
 
-def parse_version(v_str):
-    """تبدیل رشته ورژن به تاپل برای مقایسه آسان (مثلاً '1.0.2' -> (1, 0, 2))"""
+GITHUB_VERSION_URL = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/version.json"
+GITHUB_API_COMMITS = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/commits/{GITHUB_BRANCH}"
+GITHUB_API_COMPARE = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/compare/{{base}}...{{head}}"
+GITHUB_RAW_FILE    = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/{{path}}"
+
+# ── Files / folders we are allowed to overwrite ──────────────────────────────
+# Everything else (user data) is NEVER touched.
+ALLOWED_DIRS  = {"api", "browser", "core", "locators", "ui", "workflows", "storage"}
+ALLOWED_FILES = {"main.py", "config.py", "requirements.txt", "version.json"}
+
+# ── User-data paths that must NEVER be deleted or replaced ───────────────────
+# These live in APP_DIR (APPDATA/AutomationPlatform), so they won't be touched
+# by the file-copy logic anyway, but we list them here for documentation.
+PROTECTED_PATTERNS = {"*.db", "*.log", "screenshots/*", "chrome_profile/*"}
+
+
+def parse_version(v_str: str) -> tuple:
+    """'1.2.3' → (1, 2, 3)"""
     try:
-        return tuple(map(int, v_str.strip('v').split('.')))
-    except:
+        return tuple(map(int, v_str.strip("v").split(".")))
+    except Exception:
         return (0, 0, 0)
 
-async def check_for_updates():
+
+def _get_base_dir() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def _load_local_version() -> dict:
+    """Read version.json from the app directory."""
+    version_file = _get_base_dir() / "version.json"
+    defaults = {"version": "1.0.0", "commit_sha": None}
+    if version_file.exists():
+        try:
+            with open(version_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return {**defaults, **data}
+        except Exception:
+            pass
+    return defaults
+
+
+def _fetch_json(url: str) -> dict:
+    """Fetch JSON from a URL with a User-Agent header."""
+    req = urllib.request.Request(url, headers={"User-Agent": "AutomationPlatform-Updater"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _fetch_bytes(url: str) -> bytes:
+    """Fetch raw bytes from a URL."""
+    req = urllib.request.Request(url, headers={"User-Agent": "AutomationPlatform-Updater"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return resp.read()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Public API
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def check_for_updates() -> dict:
     """
-    بررسی گیت‌هاب برای فایل version.json و مقایسه با نسخه فعلی
+    Compare local version.json with the remote one.
+    Returns a dict with keys:
+        update_available (bool)
+        latest_version   (str)
+        local_version    (str)
+        latest_sha       (str | None)
+        local_sha        (str | None)
+        message          (str)
     """
     try:
-        def fetch():
-            req = urllib.request.Request(GITHUB_VERSION_URL, headers={"User-Agent": "AutomationPlatform"})
-            with urllib.request.urlopen(req) as response:
-                return json.loads(response.read().decode())
+        remote_data = await asyncio.to_thread(_fetch_json, GITHUB_VERSION_URL)
+        latest_version = remote_data.get("version", "1.0.0")
+        latest_sha     = remote_data.get("commit_sha")   # may be None for old releases
 
-        try:
-            remote_data = await asyncio.to_thread(fetch)
-            latest_version = remote_data.get("version", "1.0.0")
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                # If version.json doesn't exist on remote yet
-                latest_version = "1.0.0"
-            else:
-                raise
+        local_data    = _load_local_version()
+        local_version = local_data.get("version", "1.0.0")
+        local_sha     = local_data.get("commit_sha")
 
-        # خواندن نسخه لوکال
-        base_dir = Path(__file__).resolve().parent.parent
-        version_file = base_dir / "version.json"
-        
-        local_version = "1.0.0"
-        if version_file.exists():
-            try:
-                with open(version_file, "r") as f:
-                    local_data = json.load(f)
-                    local_version = local_data.get("version", "1.0.0")
-            except:
-                pass
-                
         if parse_version(latest_version) > parse_version(local_version):
             return {
                 "update_available": True,
-                "latest_version": latest_version,
-                "local_version": local_version,
-                "message": f"نسخه جدید ({latest_version}) موجود است. شما در نسخه {local_version} هستید."
+                "latest_version":   latest_version,
+                "local_version":    local_version,
+                "latest_sha":       latest_sha,
+                "local_sha":        local_sha,
+                "message": f"نسخه جدید ({latest_version}) موجود است. شما در نسخه {local_version} هستید.",
             }
-            
-        return {"update_available": False, "message": f"شما از آخرین نسخه ({local_version}) استفاده می‌کنید."}
-        
+
+        return {
+            "update_available": False,
+            "latest_version":   latest_version,
+            "local_version":    local_version,
+            "latest_sha":       latest_sha,
+            "local_sha":        local_sha,
+            "message": f"شما از آخرین نسخه ({local_version}) استفاده می‌کنید.",
+        }
+
     except Exception as e:
         logger.error(f"Error checking for updates: {e}")
-        return {"update_available": False, "message": f"خطا در بررسی آپدیت: {str(e)}"}
+        return {
+            "update_available": False,
+            "message": f"خطا در بررسی آپدیت: {e}",
+        }
 
-async def update_from_github(progress_callback=None):
+
+async def update_from_github(progress_callback=None) -> tuple[bool, str]:
     """
-    دانلود سورس کد از گیت‌هاب و جایگزینی فایل‌های تغییر یافته
-    با قابلیت گزارش پیشرفت دانلود
+    Smart incremental update:
+      1. Fetch the latest commit SHA from GitHub.
+      2. Compare it against the locally stored SHA to get only changed files.
+      3. Download and apply only those files (skip user-data paths).
+      4. Save the new version + SHA to version.json.
+
+    Falls back to a full file-list download if no local SHA is stored.
+
+    progress_callback(percent: int, status_msg: str) is called periodically.
     """
-    logger.info("شروع فرآیند آپدیت از گیت‌هاب...")
+    logger.info("شروع فرآیند آپدیت هوشمند...")
+
+    async def _progress(pct: int, msg: str):
+        if progress_callback is None:
+            return
+        try:
+            result = progress_callback(pct, msg)
+            if asyncio.iscoroutine(result):
+                await result
+        except Exception:
+            pass
+
     try:
-        base_dir = Path(__file__).resolve().parent.parent
-        temp_zip = base_dir / "update_temp.zip"
-        extract_dir = base_dir / "update_extract"
-        
-        # 1. گرفتن آخرین SHA
-        latest_sha = None
-        try:
-            req = urllib.request.Request(GITHUB_API_URL, headers={"User-Agent": "AutomationPlatform"})
-            with urllib.request.urlopen(req) as response:
-                latest_sha = json.loads(response.read().decode()).get("sha")
-        except Exception as e:
-            logger.warning(f"Could not fetch latest SHA: {e}")
+        base_dir = _get_base_dir()
 
-        # 2. دانلود فایل زیپ از گیت‌هاب (با chunking برای پیشرفت)
-        logger.info(f"در حال دانلود از: {GITHUB_REPO_URL}")
-        
-        def download_chunked():
-            req = urllib.request.Request(GITHUB_REPO_URL, headers={"User-Agent": "AutomationPlatform"})
-            with urllib.request.urlopen(req) as response, open(temp_zip, 'wb') as out_file:
-                total_size = response.headers.get('content-length')
-                total_size = int(total_size) if total_size else 2000000 # Estimate 2MB if unknown
-                
-                downloaded = 0
-                chunk_size = 8192
-                start_time = time.time()
-                
-                while True:
-                    chunk = response.read(chunk_size)
-                    if not chunk:
-                        break
-                    out_file.write(chunk)
-                    downloaded += len(chunk)
-                    
-                    if progress_callback:
-                        percent = min(int((downloaded / total_size) * 100), 100)
-                        elapsed = time.time() - start_time
-                        speed = downloaded / elapsed if elapsed > 0 else 0
-                        speed_mb = speed / (1024 * 1024)
-                        
-                        # Call sync or async callback
-                        cb_result = progress_callback(percent, f"{speed_mb:.2f} MB/s", downloaded, total_size)
-                        if asyncio.iscoroutine(cb_result):
-                            # We can't await here directly in thread, but we can schedule it
-                            # Usually we'll just fire and forget or use an event loop
-                            pass
+        # ── Step 1: get latest commit SHA ────────────────────────────────────
+        await _progress(5, "دریافت اطلاعات آخرین نسخه...")
+        latest_commit_data = await asyncio.to_thread(_fetch_json, GITHUB_API_COMMITS)
+        latest_sha = latest_commit_data.get("sha")
+        if not latest_sha:
+            raise ValueError("نمی‌توان SHA آخرین کامیت را دریافت کرد.")
 
-        await asyncio.to_thread(download_chunked)
-        
-        if progress_callback:
-            if asyncio.iscoroutinefunction(progress_callback):
-                await progress_callback(100, "0 MB/s", 1, 1, status="extracting")
-            else:
-                progress_callback(100, "0 MB/s", 1, 1, status="extracting")
-                
-        # 3. استخراج فایل زیپ
-        logger.info("در حال استخراج فایل‌ها...")
-        if extract_dir.exists():
-            shutil.rmtree(extract_dir, ignore_errors=True)
-        extract_dir.mkdir(parents=True, exist_ok=True)
-        
-        with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-            
-        # 4. پیدا کردن پوشه سورس داخل فایل استخراج شده
-        source_folder = None
-        for item in extract_dir.iterdir():
-            if item.is_dir() and "automation-browsing" in item.name.lower():
-                source_folder = item
-                break
-                
-        if not source_folder:
-            raise Exception("پوشه سورس در فایل زیپ پیدا نشد.")
-            
-        # 5. کپی کردن فایل‌های جدید روی فایل‌های قدیمی
-        logger.info("در حال جایگزینی فایل‌های سورس...")
-        allowed_dirs = ["api", "browser", "core", "locators", "ui", "workflows"]
-        allowed_files = ["main.py", "config.py", "requirements.txt"]
-        
-        for item in source_folder.iterdir():
-            target_path = base_dir / item.name
-            
-            if item.is_dir() and item.name in allowed_dirs:
-                if target_path.exists():
-                    shutil.rmtree(target_path, ignore_errors=True)
-                shutil.copytree(item, target_path)
-            elif item.is_file() and item.name in allowed_files:
-                shutil.copy2(item, target_path)
+        logger.info(f"Latest remote SHA: {latest_sha[:8]}")
 
-        # Update version.json
-        try:
-            req = urllib.request.Request(GITHUB_VERSION_URL, headers={"User-Agent": "AutomationPlatform"})
-            with urllib.request.urlopen(req) as response:
-                remote_version_data = json.loads(response.read().decode())
-                
-            with open(base_dir / "version.json", "w") as f:
-                json.dump(remote_version_data, f, indent=4)
-        except Exception as e:
-            logger.warning(f"Could not update version.json after update: {e}")
+        # ── Step 2: get remote version.json ─────────────────────────────────
+        await _progress(10, "خواندن فایل نسخه از سرور...")
+        remote_version_data = await asyncio.to_thread(_fetch_json, GITHUB_VERSION_URL)
+        latest_version = remote_version_data.get("version", "1.0.0")
 
-        # 6. پاکسازی فایل‌های موقت
-        logger.info("در حال پاکسازی فایل‌های موقت آپدیت...")
-        temp_zip.unlink(missing_ok=True)
-        shutil.rmtree(extract_dir, ignore_errors=True)
-        
-        logger.info("آپدیت با موفقیت انجام شد!")
-        return True, "آپدیت با موفقیت انجام شد! برنامه در حال راه‌اندازی مجدد است..."
-        
+        # ── Step 3: decide which files to download ───────────────────────────
+        local_data = _load_local_version()
+        local_sha  = local_data.get("commit_sha")
+
+        changed_files: list[str] = []   # repo-relative paths, e.g. "core/updater.py"
+
+        if local_sha and local_sha != latest_sha:
+            # Use GitHub Compare API — only files that actually changed
+            await _progress(20, "مقایسه تغییرات با نسخه قبلی...")
+            compare_url = GITHUB_API_COMPARE.format(base=local_sha, head=latest_sha)
+            try:
+                compare_data = await asyncio.to_thread(_fetch_json, compare_url)
+                for file_info in compare_data.get("files", []):
+                    status = file_info.get("status")          # added / modified / removed
+                    filename = file_info.get("filename", "")
+                    if status == "removed":
+                        # optionally delete removed source files
+                        _safe_delete(base_dir / filename)
+                        continue
+                    if _is_allowed_path(filename):
+                        changed_files.append(filename)
+                logger.info(f"Changed files to update ({len(changed_files)}): {changed_files}")
+            except urllib.error.HTTPError as e:
+                logger.warning(f"Compare API failed ({e}), falling back to full file list.")
+                changed_files = await _get_all_repo_files(latest_sha)
+        else:
+            # No local SHA recorded → first-time smart update, download all source files
+            await _progress(20, "اولین بار آپدیت — دریافت لیست کامل فایل‌ها...")
+            changed_files = await _get_all_repo_files(latest_sha)
+
+        if not changed_files:
+            logger.info("هیچ فایلی برای بروزرسانی وجود ندارد.")
+            # Still update version.json with SHA
+            _write_version_json(base_dir, latest_version, latest_sha)
+            return True, "برنامه از قبل به‌روز است. هیچ فایلی تغییر نکرده بود."
+
+        # ── Step 4: download & apply changed files ───────────────────────────
+        total = len(changed_files)
+        for idx, rel_path in enumerate(changed_files):
+            pct = 30 + int((idx / total) * 60)
+            await _progress(pct, f"دانلود: {rel_path}")
+            logger.info(f"  Downloading {rel_path}")
+
+            raw_url  = GITHUB_RAW_FILE.format(path=rel_path)
+            content  = await asyncio.to_thread(_fetch_bytes, raw_url)
+
+            dest = base_dir / rel_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(content)
+
+        # ── Step 5: save new version.json ────────────────────────────────────
+        await _progress(95, "ذخیره اطلاعات نسخه جدید...")
+        _write_version_json(base_dir, latest_version, latest_sha)
+
+        await _progress(100, "آپدیت کامل شد!")
+        logger.info(f"آپدیت به نسخه {latest_version} (SHA {latest_sha[:8]}) با موفقیت انجام شد.")
+        return True, f"آپدیت به نسخه {latest_version} با موفقیت انجام شد! برنامه را مجدداً راه‌اندازی کنید."
+
     except Exception as e:
-        error_msg = f"خطا در هنگام آپدیت: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        return False, error_msg
+        msg = f"خطا در هنگام آپدیت: {e}"
+        logger.error(msg, exc_info=True)
+        return False, msg
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_allowed_path(rel_path: str) -> bool:
+    """Return True only for source-code paths we are allowed to overwrite."""
+    parts = Path(rel_path).parts
+    if not parts:
+        return False
+    # Top-level file (e.g. "main.py")
+    if len(parts) == 1:
+        return parts[0] in ALLOWED_FILES
+    # File inside an allowed directory
+    return parts[0] in ALLOWED_DIRS
+
+
+def _safe_delete(path: Path):
+    """Delete a file only if it's in an allowed source path."""
+    try:
+        base = _get_base_dir()
+        rel = path.relative_to(base)
+        if _is_allowed_path(str(rel)):
+            if path.is_file():
+                path.unlink(missing_ok=True)
+                logger.info(f"  Deleted removed file: {rel}")
+    except Exception as e:
+        logger.warning(f"Could not delete {path}: {e}")
+
+
+async def _get_all_repo_files(sha: str) -> list[str]:
+    """
+    Use the Git Trees API (recursive) to list every blob in the repo,
+    then filter to only allowed source paths.
+    """
+    tree_url = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/git/trees/{sha}?recursive=1"
+    tree_data = await asyncio.to_thread(_fetch_json, tree_url)
+    files = []
+    for item in tree_data.get("tree", []):
+        if item.get("type") == "blob" and _is_allowed_path(item["path"]):
+            files.append(item["path"])
+    return files
+
+
+def _write_version_json(base_dir: Path, version: str, sha: str):
+    """Persist version + commit SHA so the next update can diff against it."""
+    import datetime
+    data = {
+        "version":    version,
+        "commit_sha": sha,
+        "updated_at": datetime.datetime.now().isoformat(),
+    }
+    with open(base_dir / "version.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
