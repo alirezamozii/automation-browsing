@@ -47,11 +47,14 @@ TRANSITION_MATRIX: dict[WorkflowState, set[WorkflowState]] = {
         WorkflowState.LOGIN,
         WorkflowState.NAVIGATING,
         WorkflowState.ERROR,
+        WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.LOGIN: {
         WorkflowState.NAVIGATING,
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.NAVIGATING: {
         WorkflowState.SEARCHING,
@@ -60,6 +63,7 @@ TRANSITION_MATRIX: dict[WorkflowState, set[WorkflowState]] = {
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
         WorkflowState.DONE,
+        WorkflowState.IDLE,
     },
     WorkflowState.SEARCHING: {
         WorkflowState.NAVIGATING,
@@ -67,29 +71,34 @@ TRANSITION_MATRIX: dict[WorkflowState, set[WorkflowState]] = {
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
         WorkflowState.DONE,
+        WorkflowState.IDLE,
     },
     WorkflowState.OPEN_FORM: {
         WorkflowState.FILL_FORM,
         WorkflowState.NAVIGATING,
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.FILL_FORM: {
         WorkflowState.SAVING,
         WorkflowState.OPEN_FORM,
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.SAVING: {
         WorkflowState.VERIFYING,
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.VERIFYING: {
         WorkflowState.NAVIGATING,
         WorkflowState.DONE,
         WorkflowState.ERROR,
         WorkflowState.PAUSED,
+        WorkflowState.IDLE,
     },
     WorkflowState.DONE: {
         WorkflowState.IDLE,

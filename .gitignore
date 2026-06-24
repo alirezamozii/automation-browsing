@@ -38,3 +38,20 @@ update_temp.zip
 workflows/archive/
 test_profile/
 *.log
+
+# Sensitive Data & Logs & Screenshots
+storage/*.db
+storage/*.sqlite
+storage/*.sqlite3
+screenshots/
+downloads/
+logs/
+
+# Auto-installer downloads (Very large and not needed in Git)
+python/
+playwright_browsers/
+python.zip
+get-pip.py
+
+# User specific workflow configurations if any
+workflows/local_*.json

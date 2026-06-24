@@ -275,7 +275,36 @@ class WorkflowRegistry:
                     suffix = file_path.suffix.lower()
                     if suffix in (".py", ".js", ".ts", ".tsx", ".java"):
                         try:
-                            # ساخت یک کلاس پویا برای ثبت این اسکریپت
+                            # اگر فایل پایتون است، ابتدا بررسی می‌کنیم آیا کلاس گردش کار بومی دارد یا خیر
+                            if suffix == ".py":
+                                import importlib.util
+                                spec = importlib.util.spec_from_file_location(
+                                    f"workflows.workflow_template.{file_path.stem}",
+                                    str(file_path)
+                                )
+                                if spec and spec.loader:
+                                    module = importlib.util.module_from_spec(spec)
+                                    sys.modules[module.__name__] = module
+                                    spec.loader.exec_module(module)
+                                    
+                                    found_native = False
+                                    for attr_name in dir(module):
+                                        attr = getattr(module, attr_name)
+                                        if (
+                                            inspect.isclass(attr)
+                                            and issubclass(attr, BaseWorkflow)
+                                            and attr is not BaseWorkflow
+                                            and attr is not ScriptTemplateWorkflow
+                                            and not inspect.isabstract(attr)
+                                        ):
+                                            self.register(attr)
+                                            count += 1
+                                            found_native = True
+                                            
+                                    if found_native:
+                                        continue
+
+                            # ساخت یک کلاس پویا برای ثبت این اسکریپت (به عنوان اسکریپت خارجی)
                             class_name = f"TemplateWorkflow_{file_path.stem}_{suffix[1:]}"
                             dynamic_class = type(
                                 class_name,

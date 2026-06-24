@@ -124,6 +124,8 @@ class WorkflowEngine:
 
         self.state_machine.pause()
         self.scheduler.pause()
+        if self.browser:
+            self.browser.pause()
 
         await self.event_bus.emit("paused", {
             "state": self.state_machine.current_state.value,
@@ -139,6 +141,8 @@ class WorkflowEngine:
 
         self.state_machine.resume()
         self.scheduler.resume()
+        if self.browser:
+            self.browser.resume()
         self._just_resumed = True
 
         await self.event_bus.emit("resumed", {
@@ -151,6 +155,9 @@ class WorkflowEngine:
         """توقف کامل اجرای گردش کار."""
         self._is_running = False
 
+        if self.browser:
+            self.browser.resume()
+
         if self._task and not self._task.done():
             self._task.cancel()
             try:
@@ -159,23 +166,14 @@ class WorkflowEngine:
                 pass
 
         # بازنشانی به IDLE
-        try:
-            if self.state_machine.current_state != WorkflowState.IDLE:
-                if self.state_machine.current_state == WorkflowState.PAUSED:
-                    self.state_machine.resume()
-                # حرکت به DONE سپس IDLE اگر ممکن باشد
-                if self.state_machine.can_transition(
-                    self.state_machine.current_state, WorkflowState.DONE
-                ):
-                    self.state_machine.transition(WorkflowState.DONE)
-                    self.state_machine.transition(WorkflowState.IDLE)
-                elif self.state_machine.can_transition(
-                    self.state_machine.current_state, WorkflowState.ERROR
-                ):
-                    self.state_machine.transition(WorkflowState.ERROR)
-                    self.state_machine.transition(WorkflowState.IDLE)
-        except ValueError:
-            pass  # اگر انتقال ممکن نبود نادیده بگیر
+        old_state = self.state_machine.current_state
+        if old_state != WorkflowState.IDLE:
+            self.state_machine.transition(WorkflowState.IDLE)
+            await self.event_bus.emit("state_changed", {
+                "old_state": old_state.value,
+                "new_state": WorkflowState.IDLE.value,
+                "workflow": self._current_workflow.name if self._current_workflow else None,
+            })
 
         self.scheduler.resume()  # آزادسازی هر انتظار باقی‌مانده
         self._current_workflow = None
